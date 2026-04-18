@@ -1,0 +1,18 @@
+[package]
+name = "phantom-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "PHANTOM Protocol — command-line tool for identity generation and inspection."
+
+[[bin]]
+name = "phantom"
+path = "src/main.rs"
+
+[dependencies]
+phantom-crypto = { workspace = true }
+phantom-wire   = { workspace = true }
+clap           = { workspace = true }
+hex            = { workspace = true }
