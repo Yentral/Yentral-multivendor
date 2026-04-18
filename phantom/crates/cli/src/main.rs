@@ -5,10 +5,13 @@
 //! phantom show-id       --mnemonic "..."  # recover and display
 //! phantom fingerprint   --mnemonic "..."  # just the address
 //! phantom demo-handshake                  # run a full PQ-X3DH+ handshake
+//! phantom demo-session                    # handshake + Double Ratchet messages
 //! ```
 
 use clap::{Parser, Subcommand};
-use phantom_crypto::{initiate, respond, Identity, PreKeyBundle, Seed};
+use phantom_crypto::{
+    initiate, initiate_session, respond, respond_session, Identity, PreKeyBundle, Seed,
+};
 
 #[derive(Parser)]
 #[command(
@@ -50,6 +53,10 @@ enum Command {
     /// identities and show that both sides derive the same root key.
     /// Useful for sanity-checking the crypto locally.
     DemoHandshake,
+
+    /// Run handshake + Double Ratchet + exchange several messages
+    /// back-and-forth, showing forward secrecy and DH-ratchet rotation.
+    DemoSession,
 }
 
 fn main() {
@@ -65,6 +72,7 @@ fn main() {
             passphrase,
         } => cmd_fingerprint(&mnemonic, &passphrase),
         Command::DemoHandshake => cmd_demo_handshake(),
+        Command::DemoSession => cmd_demo_session(),
     }
 }
 
@@ -181,6 +189,86 @@ fn cmd_demo_handshake() {
         eprintln!("✗ Root keys verschillen — dit zou niet moeten gebeuren.");
         std::process::exit(1);
     }
+}
+
+fn cmd_demo_session() {
+    println!("▶ Genereer twee verse identiteiten (Alice + Bob)...");
+    let (alice_seed, _) = Seed::generate();
+    let (bob_seed, _) = Seed::generate();
+    let alice = Identity::from_seed(&alice_seed).unwrap();
+    let bob = Identity::from_seed(&bob_seed).unwrap();
+    println!("  Alice: {}", alice.fingerprint());
+    println!("  Bob:   {}", bob.fingerprint());
+    println!();
+
+    println!("▶ Bob publiceert een signed PreKey bundle...");
+    let published = PreKeyBundle::build(&bob, 1, 100, 1_700_000_000).unwrap();
+    published.public.verify().expect("verify");
+    println!("  Hybride signature geverifieerd ✓");
+    println!();
+
+    println!("▶ Alice start PQ-X3DH+ handshake en opent een ratchet session...");
+    let (mut alice_session, initial) =
+        initiate_session(&alice, &published.public).expect("initiate_session");
+    println!(
+        "  Initial message: {} B header, {} B ct_spk, {} B ct_otpk",
+        initial.ephemeral_x25519.len(),
+        initial.mlkem_ct_spk.len(),
+        initial.mlkem_ct_otpk.len()
+    );
+    println!();
+
+    println!("▶ Bob ontvangt en opent zijn ratchet session...");
+    let mut bob_session = respond_session(
+        &bob,
+        &published.signed_prekey,
+        &published.one_time_prekey,
+        &initial,
+    )
+    .expect("respond_session");
+    println!("  Session stateful — volgende berichten zijn ChaCha20-Poly1305");
+    println!();
+
+    println!("▶ Gesprek (met out-of-order test):");
+    println!();
+
+    // Alice stuurt 3 berichten in een burst.
+    let a1 = alice_session.encrypt(b"Hoi Bob!").unwrap();
+    let a2 = alice_session.encrypt(b"Zien we elkaar morgen?").unwrap();
+    let a3 = alice_session.encrypt(b"Kom om 10:00").unwrap();
+    println!(
+        "  Alice →  3 berichten (counter {}, {}, {})",
+        a1.header.message_counter, a2.header.message_counter, a3.header.message_counter
+    );
+
+    // Netwerk levert ze out-of-order: 3, 1, 2.
+    let r3 = String::from_utf8(bob_session.decrypt(&a3).unwrap()).unwrap();
+    let r1 = String::from_utf8(bob_session.decrypt(&a1).unwrap()).unwrap();
+    let r2 = String::from_utf8(bob_session.decrypt(&a2).unwrap()).unwrap();
+    println!("  Bob ontvangt (out-of-order 3→1→2):");
+    println!("    [{}] {}", a3.header.message_counter, r3);
+    println!("    [{}] {}", a1.header.message_counter, r1);
+    println!("    [{}] {}", a2.header.message_counter, r2);
+    println!();
+
+    // Bob antwoordt — triggert DH-ratchet aan zijn kant.
+    let b1 = bob_session.encrypt(b"Ja tot morgen 10:00").unwrap();
+    let a_got = alice_session.decrypt(&b1).unwrap();
+    println!(
+        "  Bob   →  {}  (DH-ratchet step, nieuwe ephemeral X25519)",
+        String::from_utf8(a_got).unwrap()
+    );
+    println!();
+
+    // Nog een rondje.
+    let a4 = alice_session.encrypt(b"Perfect").unwrap();
+    let b_got = String::from_utf8(bob_session.decrypt(&a4).unwrap()).unwrap();
+    println!("  Alice →  {}", b_got);
+    println!();
+
+    println!("✓ Full-duplex verkeer werkt, out-of-order ook,");
+    println!("  elke bericht heeft eigen message_key (forward secrecy).");
+    println!("  ChaCha20-Poly1305 MAC beschermt tegen knoeien.");
 }
 
 fn print_mnemonic_numbered(phrase: &str) {

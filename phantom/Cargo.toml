@@ -24,8 +24,8 @@ ml-kem           = "0.2"
 ml-dsa           = "0.0.4"
 signature        = "2"
 
-# KDF + hashing
-# (Symmetric AEAD lands in Sprint 4 together with envelope sealing.)
+# AEAD + KDF + hashing
+chacha20poly1305 = "0.10"
 blake3           = "1"
 hkdf             = "0.12"
 sha2             = "0.10"

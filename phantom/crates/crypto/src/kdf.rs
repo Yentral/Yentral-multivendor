@@ -32,4 +32,9 @@ pub mod info {
 
     // Prekey bundle signature
     pub const PREKEY_BUNDLE_SIG: &[u8] = b"phantom/v1/prekey-bundle-sig";
+
+    // Double Ratchet
+    pub const RATCHET_ROOT: &[u8] = b"phantom/v1/ratchet-root";
+    pub const RATCHET_MSG_KEY: &[u8] = b"phantom/v1/ratchet-msg-key";
+    pub const RATCHET_NEXT_CHAIN: &[u8] = b"phantom/v1/ratchet-next-chain";
 }

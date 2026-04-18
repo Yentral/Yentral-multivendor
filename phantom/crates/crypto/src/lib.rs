@@ -20,19 +20,24 @@
 //! - 3: Double Ratchet with periodic PQ re-keying.
 //! - 4: Unified envelope sealing.
 
+pub mod aead;
 pub mod error;
 pub mod handshake;
 pub mod identity;
 pub mod kdf;
 pub mod pqc;
 pub mod prekey;
+pub mod ratchet;
 pub mod seed;
 
 pub use error::CryptoError;
-pub use handshake::{initiate, respond, InitialMessage, InitiatorOutput};
+pub use handshake::{
+    initiate, initiate_session, respond, respond_session, InitialMessage, InitiatorOutput,
+};
 pub use identity::{Fingerprint, Identity, PublicIdentity};
 pub use prekey::{
     BundleBody, HybridSignature, IdentityPubs, OneTimePreKeyPub, OneTimePreKeySecret, PreKeyBundle,
     PublishedBundle, SignedPreKeyPub, SignedPreKeySecret, PHANTOM_PROTOCOL_VERSION,
 };
+pub use ratchet::{RatchetHeader, RatchetMessage, Session};
 pub use seed::Seed;

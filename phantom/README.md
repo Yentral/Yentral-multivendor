@@ -12,8 +12,8 @@ Een intern, volledig privé communicatieplatform dat chat en mail in één syste
 | 2a | Deterministische PQ keygen, stabiele fingerprint | ✅ klaar |
 | 2b | PQ-X3DH+ hybride handshake (initiator + responder) | ✅ klaar |
 | 2c | Gesigneerde PreKey bundle (Ed25519 + ML-DSA-65) | ✅ klaar |
-| 3  | Hybride Double Ratchet met periodieke PQ re-key | 🚧 |
-| 4  | Unified envelope sealing (ChaCha20-Poly1305) | 🚧 |
+| 3  | Double Ratchet met ChaCha20-Poly1305 sealing | ✅ klaar |
+| 4  | Unified envelope (chat ≡ mail) + size buckets | 🚧 |
 | 5  | P2P transport via libp2p + Kademlia DHT | 🚧 |
 | 6  | Tauri desktop client | 🚧 |
 | 7  | Audit logs, org-directory, compliance hooks | 🚧 |
@@ -83,6 +83,9 @@ cargo run -q -p phantom-cli -- fingerprint \
 
 # Live demo van de PQ-X3DH+ handshake
 cargo run -q -p phantom-cli -- demo-handshake
+
+# Live demo van een volledig gesprek (handshake + ratchet + messages)
+cargo run -q -p phantom-cli -- demo-session
 ```
 
 Demo-output:
@@ -110,9 +113,9 @@ Demo-output:
 
 | Crate | Doel |
 |---|---|
-| `phantom-crypto` | Seed, identiteit, PQ primitieven, PreKey bundle, PQ-X3DH+ |
-| `phantom-wire` | Envelope + size buckets (skeleton voor sealing in Sprint 4) |
-| `phantom-cli` | Ontwikkelaarshulpmiddelen + `demo-handshake` |
+| `phantom-crypto` | Seed, identiteit, PQ primitieven, PreKey bundle, PQ-X3DH+, Double Ratchet, AEAD |
+| `phantom-wire` | Envelope + size buckets (skeleton voor unified chat≡mail in Sprint 4) |
+| `phantom-cli` | Ontwikkelaarshulpmiddelen + `demo-handshake` + `demo-session` |
 
 ## Cryptografische keuzes
 

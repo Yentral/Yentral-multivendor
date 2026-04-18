@@ -208,6 +208,44 @@ pub fn respond(
 }
 
 // ---------------------------------------------------------------------------
+// Handshake-to-Session helpers
+// ---------------------------------------------------------------------------
+
+/// Run the handshake AND build a ready-to-use Double Ratchet `Session`.
+///
+/// Alice-side. Equivalent to `initiate` followed by
+/// `Session::alice_from_root`, with the root key wiped in between.
+pub fn initiate_session(
+    alice: &Identity,
+    bob_bundle: &PreKeyBundle,
+) -> Result<(crate::ratchet::Session, InitialMessage), CryptoError> {
+    let mut out = initiate(alice, bob_bundle)?;
+    let bob_ik_x = X25519Pk::from(bob_bundle.body.identity.x25519);
+    let session = crate::ratchet::Session::alice_from_root(out.root_key, bob_ik_x)?;
+    out.root_key.zeroize();
+    Ok((session, out.initial_message))
+}
+
+/// Bob-side counterpart.
+///
+/// The caller must pass Bob's identity X25519 secret separately because the
+/// ratchet uses it (not the full `Identity`) as Bob's first sending DH key.
+pub fn respond_session(
+    bob: &Identity,
+    spk_secret: &SignedPreKeySecret,
+    otpk_secret: &OneTimePreKeySecret,
+    msg: &InitialMessage,
+) -> Result<crate::ratchet::Session, CryptoError> {
+    let mut root = respond(bob, spk_secret, otpk_secret, msg)?;
+    // Bob's first sending DH key is his identity X25519 (matches what Alice
+    // expects, because alice_from_root does DH against that pubkey).
+    let bob_ik_sk = X25519Sk::from(bob.x25519_sk.to_bytes());
+    let session = crate::ratchet::Session::bob_from_root(root, bob_ik_sk);
+    root.zeroize();
+    Ok(session)
+}
+
+// ---------------------------------------------------------------------------
 // Root-key KDF
 // ---------------------------------------------------------------------------
 
