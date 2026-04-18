@@ -19,7 +19,4 @@ pub enum CryptoError {
 
     #[error("signature verification failed")]
     BadSignature,
-
-    #[error("argon2 error: {0}")]
-    Argon2(String),
 }

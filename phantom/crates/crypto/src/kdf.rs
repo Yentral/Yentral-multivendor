@@ -20,16 +20,15 @@ pub fn hkdf_expand<const N: usize>(ikm: &[u8], info: &[u8]) -> Result<[u8; N], C
 
 /// Domain separation tags. Every sub-key MUST use its own tag; never reuse.
 pub mod info {
-    pub const ED25519_SIGN:      &[u8] = b"phantom/v1/ed25519-sign";
-    pub const X25519_KEM:        &[u8] = b"phantom/v1/x25519-kem";
-    pub const MLDSA65_SIGN:      &[u8] = b"phantom/v1/mldsa65-sign-drbg";
-    pub const MLKEM1024_KEM:     &[u8] = b"phantom/v1/mlkem1024-kem-drbg";
-    pub const STORAGE:           &[u8] = b"phantom/v1/local-storage";
-    pub const FINGERPRINT:       &[u8] = b"phantom/v1/fingerprint";
+    pub const ED25519_SIGN: &[u8] = b"phantom/v1/ed25519-sign";
+    pub const X25519_KEM: &[u8] = b"phantom/v1/x25519-kem";
+    pub const MLDSA65_SIGN: &[u8] = b"phantom/v1/mldsa65-sign-drbg";
+    pub const MLKEM1024_KEM: &[u8] = b"phantom/v1/mlkem1024-kem-drbg";
+    pub const STORAGE: &[u8] = b"phantom/v1/local-storage";
+    pub const FINGERPRINT: &[u8] = b"phantom/v1/fingerprint";
 
     // Handshake
-    pub const X3DH_ROOT:         &[u8] = b"phantom/v1/pq-x3dh-root";
-    pub const X3DH_ASSOC_DATA:   &[u8] = b"phantom/v1/pq-x3dh-ad";
+    pub const X3DH_ROOT: &[u8] = b"phantom/v1/pq-x3dh-root";
 
     // Prekey bundle signature
     pub const PREKEY_BUNDLE_SIG: &[u8] = b"phantom/v1/prekey-bundle-sig";

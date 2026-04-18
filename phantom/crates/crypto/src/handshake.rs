@@ -58,27 +58,25 @@ use crate::error::CryptoError;
 use crate::identity::Identity;
 use crate::kdf::info;
 use crate::pqc::{MlDsaPublicKey, MlKem};
-use crate::prekey::{
-    IdentityPubs, OneTimePreKeySecret, PreKeyBundle, SignedPreKeySecret,
-};
+use crate::prekey::{IdentityPubs, OneTimePreKeySecret, PreKeyBundle, SignedPreKeySecret};
 
 /// Output of a successful initiation — both the wire message to send and
 /// the resulting 32-byte root key, which seeds the Double Ratchet.
 pub struct InitiatorOutput {
     pub initial_message: InitialMessage,
-    pub root_key:        [u8; 32],
+    pub root_key: [u8; 32],
 }
 
 /// First message sent by the initiator. Carries everything the responder
 /// needs to reconstruct the same root key.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InitialMessage {
-    pub sender_identity:   IdentityPubs,
-    pub ephemeral_x25519:  [u8; 32],
-    pub signed_prekey_id:  u32,
+    pub sender_identity: IdentityPubs,
+    pub ephemeral_x25519: [u8; 32],
+    pub signed_prekey_id: u32,
     pub one_time_prekey_id: u32,
-    pub mlkem_ct_spk:      Vec<u8>, // 1568 B
-    pub mlkem_ct_otpk:     Vec<u8>, // 1568 B
+    pub mlkem_ct_spk: Vec<u8>,  // 1568 B
+    pub mlkem_ct_otpk: Vec<u8>, // 1568 B
 }
 
 // ---------------------------------------------------------------------------
@@ -88,7 +86,10 @@ pub struct InitialMessage {
 /// Alice begins a session with Bob using Bob's (verified) prekey bundle.
 ///
 /// Returns the wire message to send and the derived 32-byte root key.
-pub fn initiate(alice: &Identity, bob_bundle: &PreKeyBundle) -> Result<InitiatorOutput, CryptoError> {
+pub fn initiate(
+    alice: &Identity,
+    bob_bundle: &PreKeyBundle,
+) -> Result<InitiatorOutput, CryptoError> {
     bob_bundle.verify()?;
 
     // Alice's ephemeral X25519 keypair.
@@ -100,11 +101,13 @@ pub fn initiate(alice: &Identity, bob_bundle: &PreKeyBundle) -> Result<Initiator
     eph_seed.zeroize();
 
     // Parse Bob's public pieces.
-    let bob_ik_x     = X25519Pk::from(bob_bundle.body.identity.x25519);
-    let bob_spk_x    = X25519Pk::from(bob_bundle.body.signed_prekey.x25519_pub);
-    let bob_otpk_x   = X25519Pk::from(bob_bundle.body.one_time_prekey.x25519_pub);
-    let bob_spk_mlkem  = crate::pqc::MlKemPublicKey::from_bytes(&bob_bundle.body.signed_prekey.mlkem1024_pub)?;
-    let bob_otpk_mlkem = crate::pqc::MlKemPublicKey::from_bytes(&bob_bundle.body.one_time_prekey.mlkem1024_pub)?;
+    let bob_ik_x = X25519Pk::from(bob_bundle.body.identity.x25519);
+    let bob_spk_x = X25519Pk::from(bob_bundle.body.signed_prekey.x25519_pub);
+    let bob_otpk_x = X25519Pk::from(bob_bundle.body.one_time_prekey.x25519_pub);
+    let bob_spk_mlkem =
+        crate::pqc::MlKemPublicKey::from_bytes(&bob_bundle.body.signed_prekey.mlkem1024_pub)?;
+    let bob_otpk_mlkem =
+        crate::pqc::MlKemPublicKey::from_bytes(&bob_bundle.body.one_time_prekey.mlkem1024_pub)?;
 
     // DH values.
     let dh1 = alice.x25519_sk.diffie_hellman(&bob_spk_x);
@@ -113,7 +116,7 @@ pub fn initiate(alice: &Identity, bob_bundle: &PreKeyBundle) -> Result<Initiator
     let dh4 = ek_sk.diffie_hellman(&bob_otpk_x);
 
     // KEM encapsulations.
-    let (ct_spk,  ss_spk)  = MlKem::encapsulate(&bob_spk_mlkem)?;
+    let (ct_spk, ss_spk) = MlKem::encapsulate(&bob_spk_mlkem)?;
     let (ct_otpk, ss_otpk) = MlKem::encapsulate(&bob_otpk_mlkem)?;
 
     // Assemble IKM and derive root key.
@@ -129,15 +132,18 @@ pub fn initiate(alice: &Identity, bob_bundle: &PreKeyBundle) -> Result<Initiator
     ikm.zeroize();
 
     let initial_message = InitialMessage {
-        sender_identity:    IdentityPubs::from_identity(alice),
-        ephemeral_x25519:   *ek_pk.as_bytes(),
-        signed_prekey_id:   bob_bundle.body.signed_prekey.id,
+        sender_identity: IdentityPubs::from_identity(alice),
+        ephemeral_x25519: *ek_pk.as_bytes(),
+        signed_prekey_id: bob_bundle.body.signed_prekey.id,
         one_time_prekey_id: bob_bundle.body.one_time_prekey.id,
-        mlkem_ct_spk:       ct_spk,
-        mlkem_ct_otpk:      ct_otpk,
+        mlkem_ct_spk: ct_spk,
+        mlkem_ct_otpk: ct_otpk,
     };
 
-    Ok(InitiatorOutput { initial_message, root_key })
+    Ok(InitiatorOutput {
+        initial_message,
+        root_key,
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -182,7 +188,7 @@ pub fn respond(
     let dh4 = otpk_secret.x25519_sk.diffie_hellman(&alice_ek_x);
 
     // Mirror KEM decapsulations.
-    let ss_spk  = MlKem::decapsulate(&spk_secret.mlkem_sk,  &msg.mlkem_ct_spk)?;
+    let ss_spk = MlKem::decapsulate(&spk_secret.mlkem_sk, &msg.mlkem_ct_spk)?;
     let ss_otpk = MlKem::decapsulate(&otpk_secret.mlkem_sk, &msg.mlkem_ct_otpk)?;
 
     let mut ikm = Vec::with_capacity(32 * 6);

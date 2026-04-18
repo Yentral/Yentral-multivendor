@@ -32,8 +32,7 @@ pub use error::CryptoError;
 pub use handshake::{initiate, respond, InitialMessage, InitiatorOutput};
 pub use identity::{Fingerprint, Identity, PublicIdentity};
 pub use prekey::{
-    BundleBody, HybridSignature, IdentityPubs, OneTimePreKeyPub, OneTimePreKeySecret,
-    PreKeyBundle, PublishedBundle, SignedPreKeyPub, SignedPreKeySecret,
-    PHANTOM_PROTOCOL_VERSION,
+    BundleBody, HybridSignature, IdentityPubs, OneTimePreKeyPub, OneTimePreKeySecret, PreKeyBundle,
+    PublishedBundle, SignedPreKeyPub, SignedPreKeySecret, PHANTOM_PROTOCOL_VERSION,
 };
 pub use seed::Seed;

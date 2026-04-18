@@ -45,18 +45,18 @@ pub const PHANTOM_PROTOCOL_VERSION: u32 = 1;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct IdentityPubs {
-    pub ed25519:   [u8; 32],
-    pub x25519:    [u8; 32],
-    pub mldsa65:   Vec<u8>, // 1952 B
+    pub ed25519: [u8; 32],
+    pub x25519: [u8; 32],
+    pub mldsa65: Vec<u8>,   // 1952 B
     pub mlkem1024: Vec<u8>, // 1568 B
 }
 
 impl IdentityPubs {
     pub fn from_identity(id: &Identity) -> Self {
         Self {
-            ed25519:   *id.ed25519_pk.as_bytes(),
-            x25519:    *id.x25519_pk.as_bytes(),
-            mldsa65:   id.mldsa65_pk.as_bytes().to_vec(),
+            ed25519: *id.ed25519_pk.as_bytes(),
+            x25519: *id.x25519_pk.as_bytes(),
+            mldsa65: id.mldsa65_pk.as_bytes().to_vec(),
             mlkem1024: id.mlkem1024_pk.as_bytes().to_vec(),
         }
     }
@@ -64,15 +64,15 @@ impl IdentityPubs {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SignedPreKeyPub {
-    pub id:            u32,
-    pub x25519_pub:    [u8; 32],
+    pub id: u32,
+    pub x25519_pub: [u8; 32],
     pub mlkem1024_pub: Vec<u8>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OneTimePreKeyPub {
-    pub id:            u32,
-    pub x25519_pub:    [u8; 32],
+    pub id: u32,
+    pub x25519_pub: [u8; 32],
     pub mlkem1024_pub: Vec<u8>,
 }
 
@@ -81,10 +81,10 @@ pub struct OneTimePreKeyPub {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BundleBody {
     pub protocol_version: u32,
-    pub timestamp_hour:   u64,
-    pub identity:         IdentityPubs,
-    pub signed_prekey:    SignedPreKeyPub,
-    pub one_time_prekey:  OneTimePreKeyPub,
+    pub timestamp_hour: u64,
+    pub identity: IdentityPubs,
+    pub signed_prekey: SignedPreKeyPub,
+    pub one_time_prekey: OneTimePreKeyPub,
 }
 
 /// The dual (Ed25519 + ML-DSA-65) signature over the canonical bundle body.
@@ -97,7 +97,7 @@ pub struct HybridSignature {
 /// The full published bundle: body + hybrid signature.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PreKeyBundle {
-    pub body:       BundleBody,
+    pub body: BundleBody,
     pub signatures: HybridSignature,
 }
 
@@ -114,7 +114,7 @@ pub struct SignedPreKeySecret {
     pub id: u32,
     #[zeroize(skip)] // x25519_dalek zeros its own secret on drop
     pub x25519_sk: x25519_dalek::StaticSecret,
-    pub mlkem_sk:  MlKemSecretKey,
+    pub mlkem_sk: MlKemSecretKey,
 }
 
 /// Secret material behind a published one-time prekey. Consumed after a
@@ -124,7 +124,7 @@ pub struct OneTimePreKeySecret {
     pub id: u32,
     #[zeroize(skip)]
     pub x25519_sk: x25519_dalek::StaticSecret,
-    pub mlkem_sk:  MlKemSecretKey,
+    pub mlkem_sk: MlKemSecretKey,
 }
 
 // ---------------------------------------------------------------------------
@@ -134,8 +134,8 @@ pub struct OneTimePreKeySecret {
 /// What Bob keeps locally after publishing: the bundle itself (for reference)
 /// plus the secret halves needed to answer incoming handshakes.
 pub struct PublishedBundle {
-    pub public:          PreKeyBundle,
-    pub signed_prekey:   SignedPreKeySecret,
+    pub public: PreKeyBundle,
+    pub signed_prekey: SignedPreKeySecret,
     pub one_time_prekey: OneTimePreKeySecret,
 }
 
@@ -176,16 +176,16 @@ impl PreKeyBundle {
 
         let body = BundleBody {
             protocol_version: PHANTOM_PROTOCOL_VERSION,
-            timestamp_hour:   now_hour,
-            identity:         IdentityPubs::from_identity(identity),
+            timestamp_hour: now_hour,
+            identity: IdentityPubs::from_identity(identity),
             signed_prekey: SignedPreKeyPub {
-                id:            signed_prekey_id,
-                x25519_pub:    *x_spk_pk.as_bytes(),
+                id: signed_prekey_id,
+                x25519_pub: *x_spk_pk.as_bytes(),
                 mlkem1024_pub: pq_spk_pk.as_bytes().to_vec(),
             },
             one_time_prekey: OneTimePreKeyPub {
-                id:            one_time_prekey_id,
-                x25519_pub:    *x_otpk_pk.as_bytes(),
+                id: one_time_prekey_id,
+                x25519_pub: *x_otpk_pk.as_bytes(),
                 mlkem1024_pub: pq_otpk_pk.as_bytes().to_vec(),
             },
         };
@@ -197,14 +197,14 @@ impl PreKeyBundle {
         Ok(PublishedBundle {
             public,
             signed_prekey: SignedPreKeySecret {
-                id:        signed_prekey_id,
+                id: signed_prekey_id,
                 x25519_sk: x_spk_sk,
-                mlkem_sk:  pq_spk_sk,
+                mlkem_sk: pq_spk_sk,
             },
             one_time_prekey: OneTimePreKeySecret {
-                id:        one_time_prekey_id,
+                id: one_time_prekey_id,
                 x25519_sk: x_otpk_sk,
-                mlkem_sk:  pq_otpk_sk,
+                mlkem_sk: pq_otpk_sk,
             },
         })
     }
@@ -235,8 +235,7 @@ impl PreKeyBundle {
 /// default little-endian fixed-int config is deterministic across platforms,
 /// which is what we need.
 fn canonical_body_bytes(body: &BundleBody) -> Result<Vec<u8>, CryptoError> {
-    let serialized =
-        bincode::serialize(body).map_err(|_| CryptoError::KeyDerivation)?;
+    let serialized = bincode::serialize(body).map_err(|_| CryptoError::KeyDerivation)?;
     // Domain-separate so bundle bytes can never be confused with anything else.
     let mut h = blake3::Hasher::new();
     h.update(crate::kdf::info::PREKEY_BUNDLE_SIG);
@@ -246,7 +245,10 @@ fn canonical_body_bytes(body: &BundleBody) -> Result<Vec<u8>, CryptoError> {
     Ok(h.finalize().as_bytes().to_vec())
 }
 
-fn sign_bundle_body(identity: &Identity, body: &BundleBody) -> Result<HybridSignature, CryptoError> {
+fn sign_bundle_body(
+    identity: &Identity,
+    body: &BundleBody,
+) -> Result<HybridSignature, CryptoError> {
     let msg = canonical_body_bytes(body)?;
 
     let ed_sig: EdSig = identity.ed25519_sk.sign(&msg);

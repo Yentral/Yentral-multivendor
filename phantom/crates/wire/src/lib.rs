@@ -14,9 +14,9 @@
 //! payload. Relay nodes have no way to correlate messages with users or
 //! each other beyond the delivery token.
 //!
-//! Sprint-1 delivers only the type skeleton and size-bucket logic. The
-//! actual sealing/unsealing routines land in Sprint-2 together with the
-//! hybrid PQ-X3DH handshake.
+//! Current scope: envelope type definitions and size-bucket logic. Actual
+//! sealing and unsealing with ChaCha20-Poly1305 (keyed off the PQ-X3DH+
+//! root key and its Double Ratchet descendants) lands in Sprint 4.
 
 pub mod envelope;
 

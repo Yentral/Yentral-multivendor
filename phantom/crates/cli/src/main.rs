@@ -1,9 +1,10 @@
-//! `phantom` — Sprint-1 CLI for identity generation and inspection.
+//! `phantom` — developer CLI for identity and handshake inspection.
 //!
 //! ```text
-//! phantom gen-identity               # new mnemonic + identity
-//! phantom show-id --mnemonic "..."   # recover and display
-//! phantom fingerprint --mnemonic "..." # just the address
+//! phantom gen-identity                    # new mnemonic + identity
+//! phantom show-id       --mnemonic "..."  # recover and display
+//! phantom fingerprint   --mnemonic "..."  # just the address
+//! phantom demo-handshake                  # run a full PQ-X3DH+ handshake
 //! ```
 
 use clap::{Parser, Subcommand};
@@ -54,10 +55,16 @@ enum Command {
 fn main() {
     let cli = Cli::parse();
     match cli.command {
-        Command::GenIdentity                     => cmd_gen_identity(),
-        Command::ShowId     { mnemonic, passphrase } => cmd_show_id(&mnemonic, &passphrase),
-        Command::Fingerprint { mnemonic, passphrase } => cmd_fingerprint(&mnemonic, &passphrase),
-        Command::DemoHandshake                   => cmd_demo_handshake(),
+        Command::GenIdentity => cmd_gen_identity(),
+        Command::ShowId {
+            mnemonic,
+            passphrase,
+        } => cmd_show_id(&mnemonic, &passphrase),
+        Command::Fingerprint {
+            mnemonic,
+            passphrase,
+        } => cmd_fingerprint(&mnemonic, &passphrase),
+        Command::DemoHandshake => cmd_demo_handshake(),
     }
 }
 
@@ -130,9 +137,9 @@ fn cmd_fingerprint(phrase: &str, passphrase: &str) {
 fn cmd_demo_handshake() {
     println!("▶ Genereer twee verse identiteiten (Alice + Bob)...");
     let (alice_seed, _) = Seed::generate();
-    let (bob_seed,   _) = Seed::generate();
+    let (bob_seed, _) = Seed::generate();
     let alice = Identity::from_seed(&alice_seed).unwrap();
-    let bob   = Identity::from_seed(&bob_seed).unwrap();
+    let bob = Identity::from_seed(&bob_seed).unwrap();
     println!("  Alice: {}", alice.fingerprint());
     println!("  Bob:   {}", bob.fingerprint());
     println!();
@@ -140,9 +147,11 @@ fn cmd_demo_handshake() {
     println!("▶ Bob publiceert een verse signed PreKey bundle (DHT simulatie)...");
     let now_hour = 1_700_000_000u64;
     let published = PreKeyBundle::build(&bob, 1, 100, now_hour).unwrap();
-    println!("  Bundle gesigneerd met Ed25519 ({} B) + ML-DSA-65 ({} B)",
+    println!(
+        "  Bundle gesigneerd met Ed25519 ({} B) + ML-DSA-65 ({} B)",
         published.public.signatures.ed25519_sig.len(),
-        published.public.signatures.mldsa65_sig.len());
+        published.public.signatures.mldsa65_sig.len()
+    );
     published.public.verify().expect("verify");
     println!("  Hybride signature geverifieerd ✓");
     println!();
@@ -188,18 +197,26 @@ fn print_mnemonic_numbered(phrase: &str) {
 fn print_public_summary(id: &Identity) {
     let pub_id = id.public();
     println!("Publieke sleutels:");
-    println!("  Ed25519   ({} B):   {}",
+    println!(
+        "  Ed25519   ({} B):   {}",
         pub_id.ed25519.as_bytes().len(),
-        hex::encode(&pub_id.ed25519.as_bytes()[..8]));
-    println!("  X25519    ({} B):   {}",
+        hex::encode(&pub_id.ed25519.as_bytes()[..8])
+    );
+    println!(
+        "  X25519    ({} B):   {}",
         pub_id.x25519.as_bytes().len(),
-        hex::encode(&pub_id.x25519.as_bytes()[..8]));
-    println!("  ML-DSA-65 ({} B): {}",
+        hex::encode(&pub_id.x25519.as_bytes()[..8])
+    );
+    println!(
+        "  ML-DSA-65 ({} B): {}",
         pub_id.mldsa65.as_bytes().len(),
-        hex::encode(&pub_id.mldsa65.as_bytes()[..8]));
-    println!("  ML-KEM-1024 ({} B): {}",
+        hex::encode(&pub_id.mldsa65.as_bytes()[..8])
+    );
+    println!(
+        "  ML-KEM-1024 ({} B): {}",
         pub_id.mlkem1024.as_bytes().len(),
-        hex::encode(&pub_id.mlkem1024.as_bytes()[..8]));
+        hex::encode(&pub_id.mlkem1024.as_bytes()[..8])
+    );
     println!();
     println!("Hybride crypto-stack:");
     println!("  signatures:      Ed25519 + ML-DSA-65  (FIPS 204)");

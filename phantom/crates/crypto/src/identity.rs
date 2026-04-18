@@ -49,12 +49,21 @@ impl Fingerprint {
     /// Format as `A1B2-C3D4-E5F6-G7H8` (upper-case hex, dash every 2 bytes).
     pub fn display(&self) -> String {
         let hex = hex::encode_upper(self.0);
-        format!("{}-{}-{}-{}", &hex[0..4], &hex[4..8], &hex[8..12], &hex[12..16])
+        format!(
+            "{}-{}-{}-{}",
+            &hex[0..4],
+            &hex[4..8],
+            &hex[8..12],
+            &hex[12..16]
+        )
     }
 
     /// Parse `A1B2-C3D4-E5F6-G7H8` (dashes optional, case-insensitive).
     pub fn parse(s: &str) -> Result<Self, CryptoError> {
-        let cleaned: String = s.chars().filter(|c| *c != '-' && !c.is_whitespace()).collect();
+        let cleaned: String = s
+            .chars()
+            .filter(|c| *c != '-' && !c.is_whitespace())
+            .collect();
         if cleaned.len() != 16 {
             return Err(CryptoError::InvalidFingerprint);
         }
@@ -84,9 +93,9 @@ impl core::fmt::Debug for Fingerprint {
 /// The portion of an identity that is safe to publish: four public keys.
 #[derive(Clone)]
 pub struct PublicIdentity {
-    pub ed25519:   Ed25519Pk,
-    pub x25519:    X25519Pk,
-    pub mldsa65:   MlDsaPublicKey,
+    pub ed25519: Ed25519Pk,
+    pub x25519: X25519Pk,
+    pub mldsa65: MlDsaPublicKey,
     pub mlkem1024: MlKemPublicKey,
 }
 
@@ -123,15 +132,15 @@ impl PublicIdentity {
 ///
 /// Constructed via `Identity::from_seed`. Secret material is zeroed on drop.
 pub struct Identity {
-    pub ed25519_sk:   Ed25519Sk,
-    pub ed25519_pk:   Ed25519Pk,
-    pub x25519_sk:    X25519Sk,
-    pub x25519_pk:    X25519Pk,
-    pub mldsa65_sk:   MlDsaSecretKey,
-    pub mldsa65_pk:   MlDsaPublicKey,
+    pub ed25519_sk: Ed25519Sk,
+    pub ed25519_pk: Ed25519Pk,
+    pub x25519_sk: X25519Sk,
+    pub x25519_pk: X25519Pk,
+    pub mldsa65_sk: MlDsaSecretKey,
+    pub mldsa65_pk: MlDsaPublicKey,
     pub mlkem1024_sk: MlKemSecretKey,
     pub mlkem1024_pk: MlKemPublicKey,
-    pub storage_key:  StorageKey,
+    pub storage_key: StorageKey,
 }
 
 /// 32-byte symmetric key for encrypting the local database.
@@ -181,9 +190,9 @@ impl Identity {
     /// Extract just the public portion of the identity.
     pub fn public(&self) -> PublicIdentity {
         PublicIdentity {
-            ed25519:   self.ed25519_pk,
-            x25519:    self.x25519_pk,
-            mldsa65:   self.mldsa65_pk.clone(),
+            ed25519: self.ed25519_pk,
+            x25519: self.x25519_pk,
+            mldsa65: self.mldsa65_pk.clone(),
             mlkem1024: self.mlkem1024_pk.clone(),
         }
     }

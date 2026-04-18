@@ -29,10 +29,10 @@ use crate::error::CryptoError;
 // ML-KEM-1024
 // ---------------------------------------------------------------------------
 
-pub const MLKEM1024_PUBKEY_LEN:         usize = 1568;
-pub const MLKEM1024_SECKEY_LEN:         usize = 3168;
-pub const MLKEM1024_CIPHERTEXT_LEN:     usize = 1568;
-pub const MLKEM1024_SHARED_SECRET_LEN:  usize = 32;
+pub const MLKEM1024_PUBKEY_LEN: usize = 1568;
+pub const MLKEM1024_SECKEY_LEN: usize = 3168;
+pub const MLKEM1024_CIPHERTEXT_LEN: usize = 1568;
+pub const MLKEM1024_SHARED_SECRET_LEN: usize = 32;
 
 type MlKem1024Ek = <MlKem1024 as KemCore>::EncapsulationKey;
 type MlKem1024Dk = <MlKem1024 as KemCore>::DecapsulationKey;
@@ -54,8 +54,11 @@ impl MlKemPublicKey {
     }
 
     fn to_ek(&self) -> Result<MlKem1024Ek, CryptoError> {
-        let enc: &Encoded<MlKem1024Ek> =
-            self.0.as_slice().try_into().map_err(|_| CryptoError::PqKeyGen)?;
+        let enc: &Encoded<MlKem1024Ek> = self
+            .0
+            .as_slice()
+            .try_into()
+            .map_err(|_| CryptoError::PqKeyGen)?;
         Ok(<MlKem1024Ek as EncodedSizeUser>::from_bytes(enc))
     }
 }
@@ -70,8 +73,11 @@ impl MlKemSecretKey {
     }
 
     fn to_dk(&self) -> Result<MlKem1024Dk, CryptoError> {
-        let enc: &Encoded<MlKem1024Dk> =
-            self.0.as_slice().try_into().map_err(|_| CryptoError::PqKeyGen)?;
+        let enc: &Encoded<MlKem1024Dk> = self
+            .0
+            .as_slice()
+            .try_into()
+            .map_err(|_| CryptoError::PqKeyGen)?;
         Ok(<MlKem1024Dk as EncodedSizeUser>::from_bytes(enc))
     }
 }
@@ -98,7 +104,9 @@ impl MlKem {
     ) -> Result<(Vec<u8>, [u8; MLKEM1024_SHARED_SECRET_LEN]), CryptoError> {
         let ek = pk.to_ek()?;
         let mut rng = rand::thread_rng();
-        let (ct, ss) = ek.encapsulate(&mut rng).map_err(|_| CryptoError::PqKeyGen)?;
+        let (ct, ss) = ek
+            .encapsulate(&mut rng)
+            .map_err(|_| CryptoError::PqKeyGen)?;
         let mut shared = [0u8; MLKEM1024_SHARED_SECRET_LEN];
         shared.copy_from_slice(ss.as_slice());
         Ok((ct.as_slice().to_vec(), shared))
@@ -123,8 +131,8 @@ impl MlKem {
 // ML-DSA-65
 // ---------------------------------------------------------------------------
 
-pub const MLDSA65_PUBKEY_LEN:    usize = 1952;
-pub const MLDSA65_SECKEY_LEN:    usize = 4032;
+pub const MLDSA65_PUBKEY_LEN: usize = 1952;
+pub const MLDSA65_SECKEY_LEN: usize = 4032;
 pub const MLDSA65_SIGNATURE_LEN: usize = 3309;
 
 /// ML-DSA-65 public key (verifying key), 1952 bytes.
@@ -144,8 +152,11 @@ impl MlDsaPublicKey {
     }
 
     fn to_vk(&self) -> Result<MlDsaVk<MlDsa65>, CryptoError> {
-        let enc: &EncodedVerifyingKey<MlDsa65> =
-            self.0.as_slice().try_into().map_err(|_| CryptoError::PqKeyGen)?;
+        let enc: &EncodedVerifyingKey<MlDsa65> = self
+            .0
+            .as_slice()
+            .try_into()
+            .map_err(|_| CryptoError::PqKeyGen)?;
         Ok(MlDsaVk::<MlDsa65>::decode(enc))
     }
 }
@@ -160,8 +171,11 @@ impl MlDsaSecretKey {
     }
 
     fn to_sk(&self) -> Result<MlDsaSk<MlDsa65>, CryptoError> {
-        let enc: &EncodedSigningKey<MlDsa65> =
-            self.0.as_slice().try_into().map_err(|_| CryptoError::PqKeyGen)?;
+        let enc: &EncodedSigningKey<MlDsa65> = self
+            .0
+            .as_slice()
+            .try_into()
+            .map_err(|_| CryptoError::PqKeyGen)?;
         Ok(MlDsaSk::<MlDsa65>::decode(enc))
     }
 }
