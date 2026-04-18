@@ -7,7 +7,7 @@
 //! ```
 
 use clap::{Parser, Subcommand};
-use phantom_crypto::{Identity, Seed};
+use phantom_crypto::{initiate, respond, Identity, PreKeyBundle, Seed};
 
 #[derive(Parser)]
 #[command(
@@ -44,6 +44,11 @@ enum Command {
         #[arg(long, default_value = "")]
         passphrase: String,
     },
+
+    /// Run a full PQ-X3DH+ handshake between two freshly generated
+    /// identities and show that both sides derive the same root key.
+    /// Useful for sanity-checking the crypto locally.
+    DemoHandshake,
 }
 
 fn main() {
@@ -52,6 +57,7 @@ fn main() {
         Command::GenIdentity                     => cmd_gen_identity(),
         Command::ShowId     { mnemonic, passphrase } => cmd_show_id(&mnemonic, &passphrase),
         Command::Fingerprint { mnemonic, passphrase } => cmd_fingerprint(&mnemonic, &passphrase),
+        Command::DemoHandshake                   => cmd_demo_handshake(),
     }
 }
 
@@ -119,6 +125,53 @@ fn cmd_fingerprint(phrase: &str, passphrase: &str) {
         }
     };
     println!("{}", identity.fingerprint());
+}
+
+fn cmd_demo_handshake() {
+    println!("▶ Genereer twee verse identiteiten (Alice + Bob)...");
+    let (alice_seed, _) = Seed::generate();
+    let (bob_seed,   _) = Seed::generate();
+    let alice = Identity::from_seed(&alice_seed).unwrap();
+    let bob   = Identity::from_seed(&bob_seed).unwrap();
+    println!("  Alice: {}", alice.fingerprint());
+    println!("  Bob:   {}", bob.fingerprint());
+    println!();
+
+    println!("▶ Bob publiceert een verse signed PreKey bundle (DHT simulatie)...");
+    let now_hour = 1_700_000_000u64;
+    let published = PreKeyBundle::build(&bob, 1, 100, now_hour).unwrap();
+    println!("  Bundle gesigneerd met Ed25519 ({} B) + ML-DSA-65 ({} B)",
+        published.public.signatures.ed25519_sig.len(),
+        published.public.signatures.mldsa65_sig.len());
+    published.public.verify().expect("verify");
+    println!("  Hybride signature geverifieerd ✓");
+    println!();
+
+    println!("▶ Alice haalt de bundle op en start een PQ-X3DH+ handshake...");
+    let out = initiate(&alice, &published.public).expect("initiate");
+    println!("  4× X25519 DH + 2× ML-KEM encapsulation → HKDF-SHA256");
+    println!("  Alice's root key:  {}", hex::encode(&out.root_key[..16]));
+    println!();
+
+    println!("▶ Bob ontvangt InitialMessage en reconstrueert de sleutel...");
+    let bob_root = respond(
+        &bob,
+        &published.signed_prekey,
+        &published.one_time_prekey,
+        &out.initial_message,
+    )
+    .expect("respond");
+    println!("  Bob's root key:    {}", hex::encode(&bob_root[..16]));
+    println!();
+
+    if out.root_key == bob_root {
+        println!("✓ Beide zijden hebben dezelfde 32-byte root key afgeleid.");
+        println!("  Zonder die sleutel ooit direct over te dragen.");
+        println!("  Een aanvaller moet BEIDE X25519 én ML-KEM-1024 breken.");
+    } else {
+        eprintln!("✗ Root keys verschillen — dit zou niet moeten gebeuren.");
+        std::process::exit(1);
+    }
 }
 
 fn print_mnemonic_numbered(phrase: &str) {

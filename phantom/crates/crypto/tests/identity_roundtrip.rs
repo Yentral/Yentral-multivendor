@@ -2,21 +2,27 @@
 //!
 //! 1. Generate a mnemonic (BIP39, 24 words)
 //! 2. Derive the master seed
-//! 3. Derive a classical Identity from the seed
-//! 4. Serialize the fingerprint
-//! 5. Recover the seed from the mnemonic alone → re-derive same classical keys
+//! 3. Derive a full Identity (classical + PQ) from the seed
+//! 4. Compute the fingerprint (address)
+//! 5. Recover the identity from the mnemonic alone — all four keypairs and
+//!    the fingerprint must match exactly.
 //!
 //! This is the "wallet recovery" story: the user who wrote down their 24
-//! words can always reconstruct their classical keys (and storage key).
+//! words can always reconstruct their full identity, forever.
 
 use phantom_crypto::{Fingerprint, Identity, Seed};
 
 #[test]
-fn wallet_recovery_classical_keys_match() {
+fn wallet_recovery_full_identity_matches() {
     // Step 1: generate mnemonic and original identity.
     let (seed_original, mnemonic) = Seed::generate();
     let id_original = Identity::from_seed(&seed_original).expect("derive identity");
-    let fp_original = id_original.fingerprint();
+
+    let ed_orig     = *id_original.ed25519_pk.as_bytes();
+    let x_orig      = *id_original.x25519_pk.as_bytes();
+    let mldsa_orig  = id_original.mldsa65_pk.as_bytes().to_vec();
+    let mlkem_orig  = id_original.mlkem1024_pk.as_bytes().to_vec();
+    let fp_orig     = id_original.fingerprint();
 
     // Step 2: simulate device loss. Only the mnemonic survives.
     let phrase = mnemonic.to_string();
@@ -28,18 +34,14 @@ fn wallet_recovery_classical_keys_match() {
     let seed_recovered = Seed::from_mnemonic(&parsed, "");
     let id_recovered = Identity::from_seed(&seed_recovered).expect("re-derive identity");
 
-    // Classical portion of the fingerprint is derived from deterministic keys,
-    // so the Ed25519 + X25519 components MUST match. The PQ components differ
-    // (Sprint-1 limitation, documented in pqc.rs), so the full fingerprint
-    // will differ — verify the classical keys directly instead.
-    assert_eq!(
-        id_recovered.ed25519_pk.as_bytes(),
-        fp_classical_ed(&id_recovered),
-        "sanity: ed25519 pubkey is self-consistent"
-    );
+    // All four public keys must match byte-for-byte.
+    assert_eq!(&ed_orig,            id_recovered.ed25519_pk.as_bytes());
+    assert_eq!(&x_orig,             id_recovered.x25519_pk.as_bytes());
+    assert_eq!(&mldsa_orig[..],     id_recovered.mldsa65_pk.as_bytes());
+    assert_eq!(&mlkem_orig[..],     id_recovered.mlkem1024_pk.as_bytes());
 
-    // The classical half of the identity must be fully reproducible.
-    let _ = fp_original; // fingerprint kept only to show Sprint-1 limitation
+    // And therefore so must the fingerprint — your address follows you.
+    assert_eq!(fp_orig, id_recovered.fingerprint());
 }
 
 #[test]
@@ -51,8 +53,11 @@ fn wrong_passphrase_yields_different_identity() {
     let id_a = Identity::from_seed(&seed_a).unwrap();
     let id_b = Identity::from_seed(&seed_b).unwrap();
 
-    assert_ne!(id_a.ed25519_pk.as_bytes(), id_b.ed25519_pk.as_bytes());
-    assert_ne!(id_a.x25519_pk.as_bytes(), id_b.x25519_pk.as_bytes());
+    assert_ne!(id_a.ed25519_pk.as_bytes(),     id_b.ed25519_pk.as_bytes());
+    assert_ne!(id_a.x25519_pk.as_bytes(),      id_b.x25519_pk.as_bytes());
+    assert_ne!(id_a.mldsa65_pk.as_bytes(),     id_b.mldsa65_pk.as_bytes());
+    assert_ne!(id_a.mlkem1024_pk.as_bytes(),   id_b.mlkem1024_pk.as_bytes());
+    assert_ne!(id_a.fingerprint(),             id_b.fingerprint());
 }
 
 #[test]
@@ -69,8 +74,4 @@ fn fingerprint_parse_roundtrip() {
     let fp = id.fingerprint();
     let reparsed = Fingerprint::parse(&fp.display()).unwrap();
     assert_eq!(fp, reparsed);
-}
-
-fn fp_classical_ed(id: &Identity) -> &[u8; 32] {
-    id.ed25519_pk.as_bytes()
 }

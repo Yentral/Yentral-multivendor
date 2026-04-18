@@ -7,18 +7,17 @@
 //!                       │
 //!               Master seed (32 B)
 //!                       │
-//!               ┌───────┼───────────────────────┐
-//!               │       │                       │
-//!          HKDF-SHA256  HKDF-SHA256        HKDF-SHA256
-//!          "ed25519"    "x25519"           "storage"
-//!               │       │                       │
-//!          Ed25519   X25519               32-B AES key
-//!          (sign)    (KEM)                (local DB)
-//!
-//!   ML-DSA-65 and ML-KEM-1024 keypairs: generated once via OsRng;
-//!   persisted encrypted under storage key. Sprint-2 TODO: replace
-//!   with FIPS-aligned deterministic keygen for full mnemonic recovery.
+//!       ┌───────────────┼───────────────┬───────────────┐
+//!       │               │               │               │
+//!   HKDF "ed25519"  HKDF "x25519"  HKDF "mldsa"   HKDF "mlkem"   HKDF "storage"
+//!       │               │               │               │               │
+//!   Ed25519         X25519         ML-DSA-65      ML-KEM-1024      32-B AES key
+//!   (sign)          (KEM)          (sign, PQ)     (KEM, PQ)        (local DB)
 //! ```
+//!
+//! All four keypairs are deterministically derived from the master seed via
+//! HKDF-SHA256 with protocol-scoped info strings. Given the same mnemonic,
+//! you always reconstruct the exact same identity — including PQ keys.
 //!
 //! The fingerprint is BLAKE3(domain || all_pubkeys) truncated to 8 bytes and
 //! displayed as `A1B2-C3D4-E5F6-G7H8`. It IS the user's address — no email,
@@ -142,10 +141,10 @@ pub struct StorageKey(pub [u8; 32]);
 impl Identity {
     /// Derive a complete identity from the master seed.
     ///
-    /// Classical keys (Ed25519, X25519) are fully deterministic: same seed
-    /// always yields the same keys. ML-DSA and ML-KEM keypairs are generated
-    /// fresh (non-deterministic) — see `pqc.rs` for the rationale and the
-    /// Sprint-2 TODO to make them seed-deterministic as well.
+    /// All four keypairs are deterministic: the same seed always yields the
+    /// same identity. Post-quantum keygen uses ChaCha20Rng seeded with an
+    /// HKDF-derived sub-seed, so the ML-DSA-65 and ML-KEM-1024 keypairs are
+    /// fully reproducible from the mnemonic alone.
     pub fn from_seed(seed: &Seed) -> Result<Self, CryptoError> {
         // Classical: deterministic from seed.
         let ed25519_seed: [u8; 32] = kdf::hkdf_expand(seed.as_bytes(), info::ED25519_SIGN)?;
@@ -156,9 +155,12 @@ impl Identity {
         let x25519_sk = X25519Sk::from(x25519_seed);
         let x25519_pk = X25519Pk::from(&x25519_sk);
 
-        // Post-quantum: fresh keypairs. TODO(sprint-2): deterministic keygen.
-        let (mldsa65_pk, mldsa65_sk) = MlDsa::keypair();
-        let (mlkem1024_pk, mlkem1024_sk) = MlKem::keypair();
+        // Post-quantum: deterministic from seed via ChaCha20Rng sub-seeds.
+        let mldsa_seed: [u8; 32] = kdf::hkdf_expand(seed.as_bytes(), info::MLDSA65_SIGN)?;
+        let (mldsa65_pk, mldsa65_sk) = MlDsa::keypair_from_seed(&mldsa_seed);
+
+        let mlkem_seed: [u8; 32] = kdf::hkdf_expand(seed.as_bytes(), info::MLKEM1024_KEM)?;
+        let (mlkem1024_pk, mlkem1024_sk) = MlKem::keypair_from_seed(&mlkem_seed);
 
         let storage_bytes: [u8; 32] = kdf::hkdf_expand(seed.as_bytes(), info::STORAGE)?;
         let storage_key = StorageKey(storage_bytes);
@@ -201,16 +203,24 @@ mod tests {
     use super::*;
 
     #[test]
-    fn classical_keys_are_deterministic() {
+    fn all_keys_are_deterministic() {
         let (seed, mnemonic) = Seed::generate();
         let id_a = Identity::from_seed(&seed).unwrap();
 
         let reseeded = Seed::from_mnemonic(&mnemonic, "");
         let id_b = Identity::from_seed(&reseeded).unwrap();
 
+        // Classical
         assert_eq!(id_a.ed25519_pk.as_bytes(), id_b.ed25519_pk.as_bytes());
         assert_eq!(id_a.x25519_pk.as_bytes(), id_b.x25519_pk.as_bytes());
         assert_eq!(id_a.storage_key.0, id_b.storage_key.0);
+
+        // Post-quantum — the whole point of Sprint 2a.
+        assert_eq!(id_a.mldsa65_pk.as_bytes(), id_b.mldsa65_pk.as_bytes());
+        assert_eq!(id_a.mlkem1024_pk.as_bytes(), id_b.mlkem1024_pk.as_bytes());
+
+        // Fingerprint must now be stable too.
+        assert_eq!(id_a.fingerprint(), id_b.fingerprint());
     }
 
     #[test]
