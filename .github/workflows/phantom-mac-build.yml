@@ -1,0 +1,83 @@
+name: phantom — mac build
+
+# Builds a signed-ish .app and a .dmg of the PHANTOM desktop client on
+# GitHub-hosted Apple Silicon runners. Triggered manually or on tags.
+#
+# Download the built artifact from the workflow run's "Artifacts" section;
+# it includes both a raw .app bundle and a .dmg for drag-and-drop install.
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'phantom-v*'
+    branches:
+      - 'claude/phantom-protocol-UUWEf'
+    paths:
+      - 'phantom/**'
+      - '.github/workflows/phantom-mac-build.yml'
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-14        # Apple Silicon (M1)
+            target: aarch64-apple-darwin
+            label: apple-silicon
+          - runner: macos-13        # Intel (for backwards-compat builds)
+            target: x86_64-apple-darwin
+            label: intel
+
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.95.0'
+          targets: ${{ matrix.target }}
+          components: rustfmt, clippy
+
+      - name: Cache cargo registry + target
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            phantom
+            phantom/desktop
+
+      - name: Workspace tests
+        working-directory: phantom
+        run: cargo test --release --workspace
+
+      - name: Install tauri-cli
+        run: cargo install tauri-cli --version '^2' --locked
+
+      - name: Build desktop bundle
+        working-directory: phantom/desktop
+        run: cargo tauri build --target ${{ matrix.target }}
+
+      - name: List produced artifacts
+        run: |
+          cd phantom/desktop/target/${{ matrix.target }}/release/bundle
+          ls -la
+          find . -name '*.dmg' -o -name '*.app' | sort
+
+      - name: Upload .app bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: phantom-desktop-${{ matrix.label }}-app
+          path: phantom/desktop/target/${{ matrix.target }}/release/bundle/macos/*.app
+          if-no-files-found: warn
+
+      - name: Upload .dmg installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: phantom-desktop-${{ matrix.label }}-dmg
+          path: phantom/desktop/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+          if-no-files-found: warn
