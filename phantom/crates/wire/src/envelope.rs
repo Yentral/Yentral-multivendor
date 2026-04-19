@@ -69,7 +69,7 @@ pub enum MessageKind {
 /// relay's perspective. `size_bucket` is redundant with `ciphertext.len()`
 /// but is transmitted explicitly so malformed traffic can be rejected
 /// before allocation.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Envelope {
     pub delivery_token: [u8; DELIVERY_TOKEN_LEN],
     pub size_bucket: SizeBucket,

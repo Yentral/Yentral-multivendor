@@ -1,0 +1,16 @@
+[package]
+name = "phantom-audit"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "PHANTOM Protocol — encrypted append-only audit log for ISO 27001 / SOC 2 compliance."
+
+[dependencies]
+phantom-crypto = { workspace = true }
+serde          = { workspace = true }
+bincode        = { workspace = true }
+blake3         = { workspace = true }
+rand           = { workspace = true }
+thiserror      = { workspace = true }

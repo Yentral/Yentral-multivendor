@@ -1,0 +1,16 @@
+[package]
+name = "phantom-directory"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "PHANTOM Protocol — signed organisational directory (internal roster of members)."
+
+[dependencies]
+phantom-crypto = { workspace = true }
+ed25519-dalek  = { workspace = true }
+serde          = { workspace = true }
+bincode        = { workspace = true }
+blake3         = { workspace = true }
+thiserror      = { workspace = true }

@@ -4,6 +4,9 @@ members = [
     "crates/crypto",
     "crates/wire",
     "crates/protocol",
+    "crates/audit",
+    "crates/directory",
+    "crates/p2p",
     "crates/cli",
 ]
 
@@ -47,10 +50,23 @@ bincode          = "1"
 # CLI
 clap             = { version = "4", features = ["derive"] }
 
+# P2P
+libp2p = { version = "0.54", features = [
+    "tcp", "noise", "yamux",
+    "kad", "mdns", "request-response", "cbor",
+    "tokio", "macros",
+]}
+tokio           = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "io-util"] }
+futures         = "0.3"
+tracing         = "0.1"
+
 # Internal crates
-phantom-crypto   = { path = "crates/crypto" }
-phantom-wire     = { path = "crates/wire" }
-phantom-protocol = { path = "crates/protocol" }
+phantom-crypto    = { path = "crates/crypto" }
+phantom-wire      = { path = "crates/wire" }
+phantom-protocol  = { path = "crates/protocol" }
+phantom-audit     = { path = "crates/audit" }
+phantom-directory = { path = "crates/directory" }
+phantom-p2p       = { path = "crates/p2p" }
 
 [profile.release]
 opt-level = 3
