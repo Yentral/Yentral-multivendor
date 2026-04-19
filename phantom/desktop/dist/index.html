@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AnonComm — Wireframe</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg: #0a0a0f;
+  --surface: #111118;
+  --surface2: #18181f;
+  --border: #232330;
+  --border2: #2e2e40;
+  --accent: #00e5ff;
+  --accent-dim: rgba(0,229,255,0.12);
+  --accent-glow: rgba(0,229,255,0.04);
+  --green: #00ff88;
+  --green-dim: rgba(0,255,136,0.1);
+  --red: #ff4466;
+  --yellow: #ffd600;
+  --text: #d0d8e8;
+  --text-dim: #505870;
+  --text-mid: #8090a8;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'IBM Plex Sans', sans-serif;
+  --sidebar-w: 64px;
+  --nav-w: 260px;
+  --panel-w: 320px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* TOP BAR */
+.topbar { height: 40px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 16px; gap: 12px; flex-shrink: 0; z-index: 100; }
+.topbar-logo { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--accent); letter-spacing: 2px; margin-right: 8px; }
+.topbar-mode { display: flex; gap: 2px; background: var(--surface2); border: 1px solid var(--border); padding: 3px; border-radius: 4px; }
+.mode-btn { font-family: var(--mono); font-size: 10px; padding: 3px 10px; cursor: pointer; border-radius: 2px; color: var(--text-dim); transition: all 0.15s; border: none; background: transparent; letter-spacing: 1px; }
+.mode-btn.active { background: var(--accent-dim); color: var(--accent); }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.privacy-badge { font-family: var(--mono); font-size: 9px; padding: 3px 10px; border: 1px solid; letter-spacing: 2px; cursor: pointer; transition: all 0.15s; }
+.privacy-badge.paranoid { border-color: var(--red); color: var(--red); }
+.privacy-badge.cautious { border-color: var(--yellow); color: var(--yellow); }
+.privacy-badge.trustful { border-color: var(--green); color: var(--green); }
+.status-dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; }
+.topbar-avatar { width: 24px; height: 24px; border-radius: 50%; background: var(--accent-dim); border: 1px solid var(--accent); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 9px; color: var(--accent); cursor: pointer; }
+
+.main { display: flex; flex: 1; overflow: hidden; }
+
+/* ICON SIDEBAR */
+.sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 4px; flex-shrink: 0; }
+.nav-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; position: relative; font-size: 18px; color: var(--text-dim); border: 1px solid transparent; }
+.nav-icon:hover { background: var(--surface2); color: var(--text); }
+.nav-icon.active { background: var(--accent-dim); color: var(--accent); border-color: rgba(0,229,255,0.2); }
+.nav-icon .badge { position: absolute; top: 4px; right: 4px; width: 14px; height: 14px; background: var(--red); border-radius: 50%; font-family: var(--mono); font-size: 8px; display: flex; align-items: center; justify-content: center; color: #fff; }
+.sidebar-divider { width: 32px; height: 1px; background: var(--border); margin: 4px 0; }
+.sidebar-bottom { margin-top: auto; }
+
+/* CONVERSATION LIST */
+.nav-panel { width: var(--nav-w); background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+.nav-panel-header { padding: 14px 16px 10px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.nav-panel-title { font-family: var(--mono); font-size: 11px; letter-spacing: 2px; color: var(--text-mid); text-transform: uppercase; }
+.icon-btn { width: 26px; height: 26px; border-radius: 4px; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 13px; color: var(--text-dim); transition: all 0.15s; }
+.icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+.search-box { margin: 10px 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; display: flex; align-items: center; padding: 0 10px; gap: 8px; }
+.search-box input { background: transparent; border: none; outline: none; font-family: var(--mono); font-size: 11px; color: var(--text); padding: 8px 0; width: 100%; }
+.search-box input::placeholder { color: var(--text-dim); }
+.search-icon { color: var(--text-dim); font-size: 12px; }
+
+.conv-list { flex: 1; overflow-y: auto; }
+.conv-section { padding: 8px 12px 4px; font-family: var(--mono); font-size: 9px; letter-spacing: 2px; color: var(--text-dim); text-transform: uppercase; }
+.conv-item { display: flex; align-items: center; padding: 9px 12px; gap: 10px; cursor: pointer; transition: background 0.1s; border-left: 2px solid transparent; position: relative; }
+.conv-item:hover { background: var(--surface2); }
+.conv-item.active { background: var(--accent-glow); border-left-color: var(--accent); }
+.conv-item.unread .conv-name { color: #fff; font-weight: 500; }
+.conv-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 11px; color: var(--text-mid); flex-shrink: 0; position: relative; }
+.conv-avatar.online::after { content: ''; position: absolute; bottom: 1px; right: 1px; width: 8px; height: 8px; background: var(--green); border-radius: 50%; border: 1px solid var(--surface); }
+.conv-avatar.mail { border-radius: 6px; font-size: 14px; }
+.conv-info { flex: 1; min-width: 0; }
+.conv-name { font-size: 12px; color: var(--text); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.conv-preview { font-family: var(--mono); font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.conv-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+.conv-time { font-family: var(--mono); font-size: 9px; color: var(--text-dim); }
+.conv-badge { width: 16px; height: 16px; background: var(--accent); border-radius: 50%; font-family: var(--mono); font-size: 8px; color: var(--bg); display: flex; align-items: center; justify-content: center; }
+.conv-lock { font-size: 9px; color: var(--green); }
+
+/* MAIN CONTENT */
+.content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.chat-header { height: 52px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 12px; flex-shrink: 0; }
+.chat-header-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 11px; color: var(--text-mid); }
+.chat-header-info { flex: 1; }
+.chat-header-name { font-size: 13px; font-weight: 500; color: #fff; display: flex; align-items: center; gap: 8px; }
+.enc-tag { font-family: var(--mono); font-size: 8px; padding: 1px 6px; border: 1px solid var(--green); color: var(--green); letter-spacing: 1px; }
+.chat-header-sub { font-family: var(--mono); font-size: 10px; color: var(--text-dim); margin-top: 1px; }
+.chat-actions { display: flex; gap: 8px; }
+.action-btn { width: 30px; height: 30px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 13px; color: var(--text-dim); transition: all 0.15s; }
+.action-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.msg-day { display: flex; align-items: center; gap: 12px; margin: 4px 0; }
+.msg-day::before, .msg-day::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.msg-day span { font-family: var(--mono); font-size: 9px; color: var(--text-dim); letter-spacing: 2px; }
+.msg-group { display: flex; flex-direction: column; gap: 3px; }
+.msg-group.mine { align-items: flex-end; }
+.msg-group.theirs { align-items: flex-start; }
+.msg-sender { font-family: var(--mono); font-size: 9px; color: var(--text-dim); margin-bottom: 4px; padding: 0 4px; display: flex; align-items: center; gap: 8px; }
+.msg-sender .verified { color: var(--green); font-size: 9px; }
+.msg-bubble { max-width: 420px; padding: 9px 14px; border-radius: 2px; font-size: 13px; line-height: 1.5; position: relative; }
+.msg-group.theirs .msg-bubble { background: var(--surface2); border: 1px solid var(--border); border-radius: 2px 12px 12px 2px; color: var(--text); }
+.msg-group.mine .msg-bubble { background: rgba(0,229,255,0.08); border: 1px solid rgba(0,229,255,0.2); border-radius: 12px 2px 2px 12px; color: var(--text); }
+.msg-time { font-family: var(--mono); font-size: 9px; color: var(--text-dim); margin-top: 2px; padding: 0 4px; display: flex; align-items: center; gap: 4px; }
+.msg-time .delivered { color: var(--accent); }
+.mail-bubble { max-width: 520px; background: var(--surface2); border: 1px solid var(--border); border-left: 3px solid var(--accent); }
+.mail-bubble .mail-subject { font-family: var(--mono); font-size: 11px; color: var(--accent); margin-bottom: 6px; letter-spacing: 0.5px; }
+.mail-bubble .mail-body { font-size: 12px; color: var(--text); line-height: 1.6; }
+.mail-bubble .mail-footer { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+.mail-btn { font-family: var(--mono); font-size: 9px; padding: 3px 10px; border: 1px solid var(--border2); color: var(--text-dim); cursor: pointer; background: transparent; transition: all 0.15s; letter-spacing: 1px; }
+.mail-btn:hover { border-color: var(--accent); color: var(--accent); }
+.mail-btn.primary { border-color: var(--accent); color: var(--accent); }
+.sys-msg { display: flex; align-items: center; justify-content: center; gap: 8px; font-family: var(--mono); font-size: 10px; color: var(--text-dim); padding: 4px; }
+.sys-msg .sys-icon { color: var(--green); }
+
+.compose-area { padding: 12px 16px; background: var(--surface); border-top: 1px solid var(--border); flex-shrink: 0; }
+.compose-toolbar { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.compose-type { display: flex; gap: 2px; background: var(--surface2); border: 1px solid var(--border); padding: 2px; border-radius: 3px; }
+.ctype-btn { font-family: var(--mono); font-size: 9px; padding: 3px 8px; cursor: pointer; border-radius: 2px; color: var(--text-dim); transition: all 0.15s; border: none; background: transparent; letter-spacing: 1px; }
+.ctype-btn.active { background: var(--accent-dim); color: var(--accent); }
+.compose-box { display: flex; align-items: flex-end; gap: 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; }
+.compose-box:focus-within { border-color: rgba(0,229,255,0.3); }
+.compose-input { flex: 1; background: transparent; border: none; outline: none; font-family: var(--sans); font-size: 13px; color: var(--text); resize: none; min-height: 20px; max-height: 120px; line-height: 1.5; }
+.compose-input::placeholder { color: var(--text-dim); }
+.compose-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+.compose-icon { width: 28px; height: 28px; border-radius: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; color: var(--text-dim); transition: all 0.15s; }
+.compose-icon:hover { color: var(--accent); }
+.send-btn { width: 32px; height: 32px; border-radius: 4px; background: var(--accent); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; color: var(--bg); transition: all 0.15s; }
+.send-btn:hover { opacity: 0.85; }
+.compose-meta { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+.enc-status { font-family: var(--mono); font-size: 9px; color: var(--green); display: flex; align-items: center; gap: 4px; }
+.disappear-set { font-family: var(--mono); font-size: 9px; color: var(--text-dim); cursor: pointer; display: flex; align-items: center; gap: 4px; }
+.disappear-set:hover { color: var(--accent); }
+
+/* RIGHT PANEL */
+.right-panel { width: var(--panel-w); background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto; }
+.panel-section { padding: 16px; border-bottom: 1px solid var(--border); }
+.panel-section-title { font-family: var(--mono); font-size: 9px; letter-spacing: 2px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 12px; }
+.contact-card { text-align: center; padding: 8px 0; }
+.contact-big-avatar { width: 56px; height: 56px; border-radius: 50%; background: var(--surface2); border: 2px solid var(--border2); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 18px; color: var(--text-mid); margin: 0 auto 10px; position: relative; }
+.contact-big-avatar::after { content: ''; position: absolute; bottom: 2px; right: 2px; width: 12px; height: 12px; background: var(--green); border-radius: 50%; border: 2px solid var(--surface); }
+.contact-name { font-size: 14px; font-weight: 500; color: #fff; margin-bottom: 2px; }
+.contact-id { font-family: var(--mono); font-size: 9px; color: var(--text-dim); letter-spacing: 1px; }
+.contact-actions { display: flex; gap: 8px; justify-content: center; margin-top: 12px; }
+.contact-action-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+.contact-action-btn .ico { width: 36px; height: 36px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.15s; }
+.contact-action-btn:hover .ico { border-color: var(--accent); }
+.contact-action-btn span { font-family: var(--mono); font-size: 8px; color: var(--text-dim); letter-spacing: 1px; }
+
+.signet-box { background: var(--surface2); border: 1px solid var(--border2); padding: 10px; border-radius: 2px; }
+.signet-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 10px; }
+.signet-row:last-child { border-bottom: none; }
+.signet-key { color: var(--text-dim); }
+.signet-val { color: var(--text); }
+.signet-val.ok { color: var(--green); }
+.signet-val.pq { color: var(--accent); }
+
+.media-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.media-thumb { aspect-ratio: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; transition: all 0.15s; color: var(--text-dim); }
+.media-thumb:hover { border-color: var(--accent); }
+
+.privacy-selector { display: flex; flex-direction: column; gap: 6px; }
+.privacy-option { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; border-radius: 2px; }
+.privacy-option:hover { border-color: var(--border2); }
+.privacy-option.selected { border-color: var(--accent); background: var(--accent-glow); }
+.privacy-option .po-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.privacy-option .po-info { flex: 1; }
+.privacy-option .po-name { font-family: var(--mono); font-size: 11px; color: var(--text); margin-bottom: 1px; }
+.privacy-option .po-desc { font-family: var(--mono); font-size: 9px; color: var(--text-dim); }
+.privacy-option .po-radio { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center; }
+.privacy-option.selected .po-radio { border-color: var(--accent); background: var(--accent-dim); }
+.privacy-option.selected .po-radio::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.mail-compose-fields { display: none; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.mail-compose-fields.visible { display: flex; }
+.mail-field { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+.mail-field-label { font-family: var(--mono); font-size: 10px; color: var(--text-dim); width: 50px; flex-shrink: 0; letter-spacing: 1px; }
+.mail-field-input { flex: 1; background: transparent; border: none; outline: none; font-family: var(--mono); font-size: 11px; color: var(--text); }
+.mail-field-input::placeholder { color: var(--text-dim); }
+
+.notif-bar { background: rgba(0,229,255,0.06); border-bottom: 1px solid rgba(0,229,255,0.15); padding: 6px 20px; display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 10px; color: var(--accent); flex-shrink: 0; }
+.notif-bar .notif-icon { font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">PHANTOM</div>
+  <div class="topbar-mode">
+    <button class="mode-btn active" onclick="switchView('chat')">CHAT</button>
+    <button class="mode-btn" onclick="switchView('mail')">MAIL</button>
+    <button class="mode-btn" onclick="switchView('calls')">CALLS</button>
+  </div>
+  <div class="topbar-right">
+    <div class="privacy-badge paranoid" id="privacyBadge" onclick="cyclePrivacy()">PARANOID</div>
+    <div class="status-dot"></div>
+    <div class="topbar-avatar">BL</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="nav-icon active">chat</div>
+    <div class="nav-icon">mail<div class="badge">3</div></div>
+    <div class="nav-icon">call</div>
+    <div class="sidebar-divider"></div>
+    <div class="nav-icon">grp</div>
+    <div class="nav-icon">file</div>
+    <div class="sidebar-bottom"><div class="nav-icon">set</div></div>
+  </div>
+
+  <div class="nav-panel">
+    <div class="nav-panel-header">
+      <span class="nav-panel-title" id="panelTitle">Berichten</span>
+      <div class="icon-btn">+</div>
+    </div>
+    <div class="search-box">
+      <span class="search-icon">&#128269;</span>
+      <input type="text" placeholder="Zoeken...">
+    </div>
+    <div class="conv-list">
+      <div id="chatConvs">
+        <div class="conv-section">Vastgemaakt</div>
+        <div class="conv-item active">
+          <div class="conv-avatar online">JD</div>
+          <div class="conv-info">
+            <div class="conv-name">Jan de Vries</div>
+            <div class="conv-preview">Versleuteld bericht</div>
+          </div>
+          <div class="conv-meta"><span class="conv-time">14:32</span><span class="conv-lock">lock</span></div>
+        </div>
+        <div class="conv-item unread">
+          <div class="conv-avatar">TR</div>
+          <div class="conv-info">
+            <div class="conv-name">Team Rust Dev</div>
+            <div class="conv-preview">3 nieuwe berichten</div>
+          </div>
+          <div class="conv-meta"><span class="conv-time">12:15</span><span class="conv-badge">3</span></div>
+        </div>
+        <div class="conv-section">Recent</div>
+        <div class="conv-item">
+          <div class="conv-avatar online">AM</div>
+          <div class="conv-info">
+            <div class="conv-name">Ahmed M.</div>
+            <div class="conv-preview">OK, morgen om 9u</div>
+          </div>
+          <div class="conv-meta"><span class="conv-time">Gist.</span></div>
+        </div>
+        <div class="conv-item">
+          <div class="conv-avatar">KL</div>
+          <div class="conv-info">
+            <div class="conv-name">Kira L.</div>
+            <div class="conv-preview">Zie bijlage</div>
+          </div>
+          <div class="conv-meta"><span class="conv-time">Ma.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="notif-bar">
+      <span class="notif-icon">@</span>
+      Verbonden via Onion Circuit . 3 hops . Kyber1024 + X25519 . Perfect Forward Secrecy actief
+    </div>
+    <div class="chat-header">
+      <div class="chat-header-avatar">JD</div>
+      <div class="chat-header-info">
+        <div class="chat-header-name">Jan de Vries <span class="enc-tag">E2E DMTP</span></div>
+        <div class="chat-header-sub">Online . Signet geverifieerd . Berichten verdwijnen na 7d</div>
+      </div>
+      <div class="chat-actions">
+        <div class="action-btn">vid</div>
+        <div class="action-btn">tel</div>
+        <div class="action-btn">zkr</div>
+        <div class="action-btn">info</div>
+      </div>
+    </div>
+    <div class="messages">
+      <div class="msg-day"><span>VANDAAG &mdash; 18 APR 2026</span></div>
+      <div class="sys-msg"><span class="sys-icon">lock</span> Sessie gestart . Double Ratchet . PQXDH key exchange voltooid</div>
+      <div class="msg-group theirs">
+        <div class="msg-sender">Jan de Vries <span class="verified">Signet OK</span></div>
+        <div class="msg-bubble">Hey, heb je de DMTP spec al kunnen bekijken? Ik denk dat we de Signet resolver via Kademlia moeten aanpakken.</div>
+        <div class="msg-time">14:18 . ontvangen</div>
+      </div>
+      <div class="msg-group mine">
+        <div class="msg-bubble">Ja, ik heb de PDF doorgelezen. Het idee om DNS te vervangen met DHT is slim &mdash; geen centrale authority meer.</div>
+        <div class="msg-time">14:21 . <span class="delivered">afgeleverd</span></div>
+      </div>
+      <div class="msg-group theirs">
+        <div class="msg-sender">Jan de Vries <span class="verified">Signet OK</span></div>
+        <div class="msg-bubble">Precies. En dan de DMTP envelope structuur bovenop Signal's Sealed Sender leggen. Niemand ziet meer van/aan/onderwerp.</div>
+        <div class="msg-time">14:24 . ontvangen</div>
+      </div>
+      <div class="msg-group theirs">
+        <div class="msg-sender">Jan de Vries . <span style="color:var(--accent);font-size:9px;">DMTP MAIL</span></div>
+        <div class="msg-bubble mail-bubble">
+          <div class="mail-subject">Re: Sprint planning Q2 &mdash; DMTP versleuteld</div>
+          <div class="mail-body">Zie mijn notities over de Rust implementatie van de DMAP inbox. Lokale search only, geen server toegang tot plaintext...</div>
+          <div class="mail-footer">
+            <button class="mail-btn primary">Openen</button>
+            <button class="mail-btn">Beantwoorden</button>
+            <button class="mail-btn">Doorsturen</button>
+          </div>
+        </div>
+        <div class="msg-time">14:28 . ontvangen via DMTP</div>
+      </div>
+      <div class="msg-group mine">
+        <div class="msg-bubble">Perfect. Laten we morgen beginnen met de crypto crate. Ik maak de Cargo workspace aan.</div>
+        <div class="msg-time">14:32 . <span class="delivered">afgeleverd</span></div>
+      </div>
+      <div class="sys-msg"><span class="sys-icon">t</span> Berichten verdwijnen automatisch na 7 dagen</div>
+    </div>
+    <div class="compose-area">
+      <div class="compose-toolbar">
+        <div class="compose-type">
+          <button class="ctype-btn active" id="chatTypeBtn" onclick="setComposeType('chat')">CHAT</button>
+          <button class="ctype-btn" id="mailTypeBtn" onclick="setComposeType('mail')">MAIL</button>
+        </div>
+      </div>
+      <div class="mail-compose-fields" id="mailFields">
+        <div class="mail-field"><span class="mail-field-label">AAN</span><input class="mail-field-input" type="text" placeholder="gebruiker@intern.phantom"></div>
+        <div class="mail-field"><span class="mail-field-label">CC</span><input class="mail-field-input" type="text" placeholder="Optioneel"></div>
+        <div class="mail-field"><span class="mail-field-label">ONDERWERP</span><input class="mail-field-input" type="text" placeholder="Onderwerp (versleuteld)"></div>
+      </div>
+      <div class="compose-box">
+        <textarea class="compose-input" id="composeInput" placeholder="Versleuteld bericht..." rows="1"></textarea>
+        <div class="compose-actions">
+          <div class="compose-icon">att</div>
+          <div class="compose-icon">:)</div>
+          <div class="compose-icon">t</div>
+          <button class="send-btn">&gt;</button>
+        </div>
+      </div>
+      <div class="compose-meta">
+        <span class="enc-status">E2E versleuteld . Kyber1024 + Double Ratchet</span>
+        <span class="disappear-set">Verdwijnt na: 7d</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="panel-section">
+      <div class="panel-section-title">Contact</div>
+      <div class="contact-card">
+        <div class="contact-big-avatar">JD</div>
+        <div class="contact-name">Jan de Vries</div>
+        <div class="contact-id">jan@intern.phantom</div>
+        <div class="contact-actions">
+          <div class="contact-action-btn"><div class="ico">chat</div><span>CHAT</span></div>
+          <div class="contact-action-btn"><div class="ico">mail</div><span>MAIL</span></div>
+          <div class="contact-action-btn"><div class="ico">tel</div><span>BEL</span></div>
+          <div class="contact-action-btn"><div class="ico">vid</div><span>VIDEO</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">Signet &mdash; DIME</div>
+      <div class="signet-box">
+        <div class="signet-row"><span class="signet-key">Status</span><span class="signet-val ok">Geverifieerd</span></div>
+        <div class="signet-row"><span class="signet-key">Identity</span><span class="signet-val">Ed25519</span></div>
+        <div class="signet-row"><span class="signet-key">Encryptie</span><span class="signet-val pq">Kyber1024</span></div>
+        <div class="signet-row"><span class="signet-key">Handtekening</span><span class="signet-val pq">Dilithium3</span></div>
+        <div class="signet-row"><span class="signet-key">Discovery</span><span class="signet-val">DHT (P2P)</span></div>
+        <div class="signet-row"><span class="signet-key">Geldig tot</span><span class="signet-val">18 Apr 2027</span></div>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">Privacy Modus</div>
+      <div class="privacy-selector">
+        <div class="privacy-option"><div class="po-dot" style="background:var(--green)"></div><div class="po-info"><div class="po-name">TRUSTFUL</div><div class="po-desc">Server beheert sleutels</div></div><div class="po-radio"></div></div>
+        <div class="privacy-option"><div class="po-dot" style="background:var(--yellow)"></div><div class="po-info"><div class="po-name">CAUTIOUS</div><div class="po-desc">Gedeelde verantwoordelijkheid</div></div><div class="po-radio"></div></div>
+        <div class="privacy-option selected"><div class="po-dot" style="background:var(--red)"></div><div class="po-info"><div class="po-name">PARANOID</div><div class="po-desc">Alleen client . Onion . PQC</div></div><div class="po-radio"></div></div>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">Gedeelde Bestanden</div>
+      <div class="media-grid">
+        <div class="media-thumb">doc</div><div class="media-thumb">doc</div><div class="media-thumb">img</div>
+        <div class="media-thumb">doc</div><div class="media-thumb">zip</div><div class="media-thumb">doc</div>
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">Onion Circuit</div>
+      <div class="signet-box">
+        <div class="signet-row"><span class="signet-key">Hop 1</span><span class="signet-val ok">192.168.x.x</span></div>
+        <div class="signet-row"><span class="signet-key">Hop 2</span><span class="signet-val ok">10.x.x.x</span></div>
+        <div class="signet-row"><span class="signet-key">Hop 3</span><span class="signet-val ok">172.x.x.x</span></div>
+        <div class="signet-row"><span class="signet-key">Latency</span><span class="signet-val">~180ms</span></div>
+        <div class="signet-row"><span class="signet-key">AI Shield</span><span class="signet-val ok">Decoy actief</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Onboarding overlay (eerste start). JS opent 'm als er geen identiteit is. -->
+<div id="onboarding" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;align-items:center;justify-content:center;">
+  <div style="width:520px;max-width:90vw;background:var(--surface);border:1px solid var(--accent);padding:24px;font-family:var(--sans);">
+    <div style="font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:2px;margin-bottom:6px;">PHANTOM &mdash; EERSTE START</div>
+    <div style="font-size:14px;color:#fff;margin-bottom:16px;">Geen identiteit gevonden. Maak een nieuwe of herstel via mnemonic.</div>
+
+    <div id="ob-init" style="display:flex;gap:8px;margin-bottom:12px;">
+      <button id="ob-new" style="flex:1;padding:10px;background:var(--accent);border:none;color:var(--bg);font-family:var(--mono);font-size:11px;letter-spacing:1px;cursor:pointer;">NIEUWE IDENTITEIT</button>
+      <button id="ob-recover-btn" style="flex:1;padding:10px;background:transparent;border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:11px;letter-spacing:1px;cursor:pointer;">HERSTEL MNEMONIC</button>
+    </div>
+
+    <div id="ob-recover" style="display:none;margin-bottom:12px;">
+      <textarea id="ob-phrase" placeholder="24 woorden, gescheiden door spaties..." style="width:100%;min-height:80px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px;font-family:var(--mono);font-size:11px;outline:none;resize:none;"></textarea>
+      <button id="ob-do-recover" style="margin-top:8px;width:100%;padding:10px;background:var(--accent);border:none;color:var(--bg);font-family:var(--mono);font-size:11px;letter-spacing:1px;cursor:pointer;">HERSTEL</button>
+    </div>
+
+    <div id="ob-mnemonic" style="display:none;">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--red);letter-spacing:1px;margin-bottom:8px;">SCHRIJF OP &mdash; zonder deze kun je je identiteit niet herstellen</div>
+      <div id="ob-words" style="background:var(--surface2);border:1px solid var(--border2);padding:14px;font-family:var(--mono);font-size:12px;color:var(--text);line-height:1.8;margin-bottom:12px;"></div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);margin-bottom:12px;">Jouw adres: <span id="ob-fp" style="color:var(--accent);"></span></div>
+      <button id="ob-done" style="width:100%;padding:10px;background:var(--accent);border:none;color:var(--bg);font-family:var(--mono);font-size:11px;letter-spacing:1px;cursor:pointer;">IK HEB ZE BEWAARD</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings flyout (listen/dial) -->
+<div id="settings" style="display:none;position:fixed;top:50px;left:80px;z-index:900;width:320px;background:var(--surface);border:1px solid var(--border2);padding:16px;font-family:var(--sans);">
+  <div style="font-family:var(--mono);font-size:10px;color:var(--text-dim);letter-spacing:2px;margin-bottom:10px;">P2P CONFIG</div>
+  <div style="margin-bottom:10px;">
+    <input id="cfg-listen" type="text" placeholder="/ip4/0.0.0.0/tcp/0" value="/ip4/0.0.0.0/tcp/0" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px;font-family:var(--mono);font-size:11px;outline:none;">
+    <button id="cfg-listen-btn" style="margin-top:4px;width:100%;padding:6px;background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:var(--mono);font-size:10px;letter-spacing:1px;cursor:pointer;">LUISTEREN</button>
+  </div>
+  <div>
+    <input id="cfg-dial" type="text" placeholder="/ip4/.../tcp/.../p2p/..." style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px;font-family:var(--mono);font-size:11px;outline:none;">
+    <button id="cfg-dial-btn" style="margin-top:4px;width:100%;padding:6px;background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:var(--mono);font-size:10px;letter-spacing:1px;cursor:pointer;">VERBIND</button>
+  </div>
+  <div id="cfg-msg" style="margin-top:10px;font-family:var(--mono);font-size:10px;color:var(--text-dim);"></div>
+</div>
+
+<script>
+// ----------------------------------------------------------------------
+// PHANTOM UI wiring. Works in Tauri (real backend) and in a plain browser
+// (demo mode — the static wireframe content stays visible).
+// ----------------------------------------------------------------------
+
+const tauri = window.__TAURI__ && window.__TAURI__.core ? window.__TAURI__.core : null;
+const invoke = tauri ? tauri.invoke : async (cmd, args) => {
+  console.log('[demo] invoke', cmd, args);
+  if (cmd === 'bootstrap') {
+    return { fingerprint: 'DEMO-MODE-0000-0000', peer_id: 'demo-peer',
+             mnemonic: 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art' };
+  }
+  if (cmd === 'listen_on') return '/ip4/127.0.0.1/tcp/56789';
+  return null;
+};
+
+let identityReady = false;
+let myFingerprint = null;
+
+// ----- Onboarding -----
+const ob = document.getElementById('onboarding');
+const obInit = document.getElementById('ob-init');
+const obRecover = document.getElementById('ob-recover');
+const obMnemonic = document.getElementById('ob-mnemonic');
+
+window.addEventListener('DOMContentLoaded', () => {
+  // Show onboarding on first load — no identity in-memory yet.
+  ob.style.display = 'flex';
+});
+
+document.getElementById('ob-new').onclick = async () => {
+  try {
+    const info = await invoke('bootstrap');
+    showMnemonic(info);
+  } catch (e) { alert('bootstrap fout: ' + e); }
+};
+
+document.getElementById('ob-recover-btn').onclick = () => {
+  obInit.style.display = 'none';
+  obRecover.style.display = 'block';
+};
+
+document.getElementById('ob-do-recover').onclick = async () => {
+  const phrase = document.getElementById('ob-phrase').value.trim();
+  try {
+    const info = await invoke('recover', { phrase, passphrase: '' });
+    finishOnboarding(info);
+  } catch (e) { alert('recover fout: ' + e); }
+};
+
+document.getElementById('ob-done').onclick = () => {
+  ob.style.display = 'none';
+};
+
+function showMnemonic(info) {
+  obInit.style.display = 'none';
+  obMnemonic.style.display = 'block';
+  const words = (info.mnemonic || '').split(/\s+/).filter(Boolean);
+  document.getElementById('ob-words').innerHTML =
+    words.map((w, i) => `<span style="display:inline-block;min-width:110px;"><span style="color:var(--text-dim);">${(i+1).toString().padStart(2,'0')}.</span> ${w}</span>`).join('');
+  document.getElementById('ob-fp').textContent = info.fingerprint;
+  setIdentity(info);
+}
+
+function finishOnboarding(info) {
+  ob.style.display = 'none';
+  setIdentity(info);
+}
+
+function setIdentity(info) {
+  identityReady = true;
+  myFingerprint = info.fingerprint;
+  // Top-bar avatar: first two hex chars of the fingerprint.
+  const initials = (info.fingerprint || '??').replace(/-/g,'').slice(0,2);
+  const avatar = document.querySelector('.topbar-avatar');
+  if (avatar) { avatar.textContent = initials; avatar.title = info.fingerprint; }
+  // Right panel contact-id row (re-purpose to show "me" for now).
+  // A full impl would render once a peer is selected.
+}
+
+// ----- Settings flyout -----
+const settings = document.getElementById('settings');
+document.querySelectorAll('.nav-icon').forEach((el) => {
+  if (el.textContent.trim() === 'set') {
+    el.onclick = (e) => {
+      e.stopPropagation();
+      settings.style.display = settings.style.display === 'none' ? 'block' : 'none';
+    };
+  }
+});
+document.addEventListener('click', (e) => {
+  if (!settings.contains(e.target)) settings.style.display = 'none';
+});
+settings.addEventListener('click', (e) => e.stopPropagation());
+
+document.getElementById('cfg-listen-btn').onclick = async () => {
+  const addr = document.getElementById('cfg-listen').value || '/ip4/0.0.0.0/tcp/0';
+  try {
+    const bound = await invoke('listen_on', { addr });
+    document.getElementById('cfg-msg').textContent = 'listening on ' + bound;
+  } catch (e) { document.getElementById('cfg-msg').textContent = 'fout: ' + e; }
+};
+
+document.getElementById('cfg-dial-btn').onclick = async () => {
+  const addr = document.getElementById('cfg-dial').value;
+  if (!addr) return;
+  try {
+    await invoke('dial', { addr });
+    document.getElementById('cfg-msg').textContent = 'dialed ' + addr;
+  } catch (e) { document.getElementById('cfg-msg').textContent = 'fout: ' + e; }
+};
+
+// ----- View switcher -----
+function switchView(view) {
+  document.querySelectorAll('.mode-btn').forEach((b, i) => {
+    b.classList.toggle('active', (view === 'chat' && i === 0) || (view === 'mail' && i === 1) || (view === 'calls' && i === 2));
+  });
+  const chatConvs = document.getElementById('chatConvs');
+  if (chatConvs) {
+    chatConvs.style.display = (view === 'chat' || view === 'mail') ? 'block' : 'none';
+  }
+}
+window.switchView = switchView;
+
+// ----- Privacy badge -----
+const privacyModes = ['paranoid', 'cautious', 'trustful'];
+let privIdx = 0;
+window.cyclePrivacy = () => {
+  privIdx = (privIdx + 1) % privacyModes.length;
+  const mode = privacyModes[privIdx];
+  const badge = document.getElementById('privacyBadge');
+  badge.className = 'privacy-badge ' + mode;
+  badge.textContent = mode.toUpperCase();
+};
+
+// ----- Compose type toggle (chat/mail) -----
+window.setComposeType = (type) => {
+  document.getElementById('chatTypeBtn').classList.toggle('active', type === 'chat');
+  document.getElementById('mailTypeBtn').classList.toggle('active', type === 'mail');
+  document.getElementById('mailFields').classList.toggle('visible', type === 'mail');
+  document.getElementById('composeInput').placeholder =
+    type === 'mail' ? 'Mail inhoud (DMTP versleuteld)...' : 'Versleuteld bericht...';
+};
+
+// ----- Send -----
+document.querySelector('.send-btn').onclick = async () => {
+  const input = document.getElementById('composeInput');
+  const body = input.value.trim();
+  if (!body) return;
+
+  // Active conversation target.
+  const activeConv = document.querySelector('.conv-item.active');
+  const target = activeConv ? activeConv.querySelector('.conv-name').textContent : null;
+
+  // Optimistically render.
+  const msgs = document.querySelector('.messages');
+  const div = document.createElement('div');
+  div.className = 'msg-group mine';
+  div.innerHTML = `<div class="msg-bubble">${body.replace(/</g,'&lt;')}</div>
+                   <div class="msg-time">nu . <span class="delivered">verzonden</span></div>`;
+  msgs.appendChild(div);
+  input.value = '';
+  msgs.scrollTop = msgs.scrollHeight;
+
+  // Fire to backend if we have an identity + a valid fingerprint recipient.
+  // For Sprint 6 we only wire the local call; real delivery requires a
+  // configured peer which the UI doesn't collect yet — the REPL covers that.
+  if (tauri && identityReady) {
+    try { await invoke('send_chat', { fingerprint: 'DEMO-0000-0000-0000', body }); }
+    catch (e) { /* expected until UI flow for adding real peers is wired */ }
+  }
+};
+
+// Enter to send.
+document.getElementById('composeInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    document.querySelector('.send-btn').click();
+  }
+});
+</script>
+
+</body>
+</html>

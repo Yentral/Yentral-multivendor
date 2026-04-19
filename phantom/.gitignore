@@ -3,3 +3,8 @@
 /desktop/gen
 *.swp
 .DS_Store
+
+# The repo-root .gitignore has `dist` which ignores any `dist/` folder.
+# We need our Tauri frontend to be tracked — explicitly un-ignore it.
+!/desktop/dist
+!/desktop/dist/**
