@@ -4,135 +4,100 @@
 
 Een intern, volledig privé communicatieplatform dat chat en mail in één systeem combineert. Geen centrale server. Geen telefoonnummer. Geen metadata-lekkage.
 
-## Status
+## Status — alle sprints af
 
 | Sprint | Doel | Status |
 |---|---|---|
-| 1 | Wallet-identiteit (BIP39 → 4 keypairs → fingerprint) | ✅ klaar |
-| 2a | Deterministische PQ keygen, stabiele fingerprint | ✅ klaar |
-| 2b | PQ-X3DH+ hybride handshake (initiator + responder) | ✅ klaar |
-| 2c | Gesigneerde PreKey bundle (Ed25519 + ML-DSA-65) | ✅ klaar |
-| 3  | Double Ratchet met ChaCha20-Poly1305 sealing | ✅ klaar |
-| 4  | Unified envelope (chat ≡ mail) + size buckets | 🚧 |
-| 5  | P2P transport via libp2p + Kademlia DHT | 🚧 |
-| 6  | Tauri desktop client | 🚧 |
-| 7  | Audit logs, org-directory, compliance hooks | 🚧 |
+| 1  | Wallet-identiteit (BIP39 → 4 keypairs → fingerprint) | ✅ |
+| 2a | Deterministische PQ keygen, stabiele fingerprint | ✅ |
+| 2b | PQ-X3DH+ hybride handshake | ✅ |
+| 2c | Gesigneerde PreKey bundle (Ed25519 + ML-DSA-65) | ✅ |
+| 3  | Double Ratchet met ChaCha20-Poly1305 | ✅ |
+| 4  | Unified envelope (chat ≡ mail ≡ file), size-buckets, chunking | ✅ |
+| 5  | P2P transport: libp2p + Kademlia DHT + store-forward | ✅ |
+| 6  | Desktop client: REPL + Tauri-skeleton | ✅ |
+| 7  | Audit log + org-directory (ISO/SOC hooks) | ✅ |
 
-## Architectuur
-
-```
-Mnemonic (24 BIP39-woorden)
-    │  PBKDF2-HMAC-SHA512
-Master seed (32 B)
-    │  HKDF-SHA256 (domeinscheiding)
-    ├── Ed25519     (sig klassiek, 32 B pub)
-    ├── X25519      (KEM klassiek, 32 B pub)
-    ├── ML-DSA-65   (sig PQ, FIPS 204, 1952 B pub)    ← deterministisch sinds 2a
-    ├── ML-KEM-1024 (KEM PQ, FIPS 203, 1568 B pub)    ← deterministisch sinds 2a
-    └── Storage key (32 B, lokale DB)
-
-Fingerprint = BLAKE3(domain || alle pubs)[..8]
-Weergave:   A1B2-C3D4-E5F6-G7H8
-```
-
-### PQ-X3DH+ handshake (Sprint 2b)
+## Workspace
 
 ```
-Alice                                 Wire                    Bob
-─────                                ──────                  ─────
-fetch bundle ─────────────────────────────────────────►  publishes bundle
-
-4× X25519 DH:
-  IK_A × SPK_B
-  EK   × IK_B
-  EK   × SPK_B
-  EK   × OTPK_B
-+ 2× ML-KEM-1024 encap (SPK, OTPK)
-→ HKDF-SHA256 → SK (32 B)
-
-InitialMessage ───────────────────────────────────────►  mirror DH + decap
-                                                         → HKDF-SHA256 → SK
-
-                           SK matches ✓
+phantom/
+├── Cargo.toml                workspace
+├── rust-toolchain.toml       rustc 1.95.0
+├── crates/
+│   ├── crypto/               identity, PQ, handshake, ratchet, aead
+│   ├── wire/                 envelope type + size buckets
+│   ├── protocol/             unified sealing (chat/mail/file)
+│   ├── p2p/                  libp2p Swarm, DHT, store-forward
+│   ├── audit/                encrypted append-only log
+│   ├── directory/            signed org roster
+│   ├── chat/                 REPL client + ChatApp core
+│   └── cli/                  dev tool (demo-handshake, demo-session, …)
+└── desktop/                  Tauri 2 GUI shell (excluded from workspace)
 ```
 
-Een aanvaller moet **beide** X25519 én ML-KEM-1024 breken om `SK` te kennen. Dekt de *Harvest Now, Decrypt Later* dreiging.
-
-### PreKey bundle (Sprint 2c)
-
-Elke bundle wordt met **twee** handtekeningen gebonden:
-
-- Ed25519 (64 B) — klassiek bewezen
-- ML-DSA-65 (3309 B) — post-quantum (FIPS 204)
-
-Verifier controleert beide. Hybride security: beide moeten gebroken worden voordat een bundel gevalideerd kan worden.
-
-## Bouwen en proberen
+## Bouwen & proberen
 
 ```bash
 cd phantom
 cargo build --release
-cargo test          # 34 tests, alle green
+cargo test                     # 79 tests, alle green
 
-# Nieuwe identiteit (wallet-stijl)
+# Dev tool
 cargo run -q -p phantom-cli -- gen-identity
-
-# Adres uit mnemonic
-cargo run -q -p phantom-cli -- fingerprint \
-    --mnemonic "abandon abandon ... art"
-
-# Live demo van de PQ-X3DH+ handshake
 cargo run -q -p phantom-cli -- demo-handshake
-
-# Live demo van een volledig gesprek (handshake + ratchet + messages)
 cargo run -q -p phantom-cli -- demo-session
+cargo run -q -p phantom-cli -- demo-mail
+
+# Interactieve chat client
+cargo run -p phantom-chat --bin phantom-chat
 ```
 
-Demo-output:
+## De stack, van onder naar boven
 
 ```
-▶ Genereer twee verse identiteiten (Alice + Bob)...
-  Alice: 1FA6-FE31-E916-E91B
-  Bob:   E7E6-2207-9B5A-339A
-
-▶ Bob publiceert een verse signed PreKey bundle...
-  Bundle gesigneerd met Ed25519 (64 B) + ML-DSA-65 (3309 B)
-  Hybride signature geverifieerd ✓
-
-▶ Alice haalt de bundle op en start een PQ-X3DH+ handshake...
-  4× X25519 DH + 2× ML-KEM encapsulation → HKDF-SHA256
-  Alice's root key:  1edc5e2e5b254aad31a042c83970323a
-
-▶ Bob ontvangt InitialMessage en reconstrueert de sleutel...
-  Bob's root key:    1edc5e2e5b254aad31a042c83970323a
-
-✓ Beide zijden hebben dezelfde 32-byte root key afgeleid.
+┌─────────────────────────────────────────────────────────┐
+│  phantom-chat  (REPL)    ·    desktop/  (Tauri GUI)     │
+├─────────────────────────────────────────────────────────┤
+│  phantom-p2p   libp2p + Kademlia + store-and-forward    │
+├─────────────────────────────────────────────────────────┤
+│  phantom-protocol   unified envelope sealing (chunks,   │
+│                     size buckets, chat ≡ mail ≡ file)   │
+├─────────────────────────────────────────────────────────┤
+│  phantom-crypto  ratchet · PQ-X3DH+ · ChaCha20-Poly1305 │
+│                  identity · Kyber1024 · Dilithium3       │
+├─────────────────────────────────────────────────────────┤
+│  phantom-wire    envelope type · size buckets            │
+├─────────────────────────────────────────────────────────┤
+│  phantom-audit   hash-chained encrypted log              │
+│  phantom-directory   signed org roster (TOFU-CA)         │
+└─────────────────────────────────────────────────────────┘
 ```
-
-## Workspace
-
-| Crate | Doel |
-|---|---|
-| `phantom-crypto` | Seed, identiteit, PQ primitieven, PreKey bundle, PQ-X3DH+, Double Ratchet, AEAD |
-| `phantom-wire` | Envelope + size buckets (skeleton voor unified chat≡mail in Sprint 4) |
-| `phantom-cli` | Ontwikkelaarshulpmiddelen + `demo-handshake` + `demo-session` |
 
 ## Cryptografische keuzes
 
-- **Signatures**: Ed25519 + ML-DSA-65 (hybride)
-- **KEM**: X25519 + ML-KEM-1024 (hybride)
+- **Wallet**: BIP39 24-woorden → PBKDF2-HMAC-SHA512 → 32 B seed
+- **Signatures** (hybride): Ed25519 + ML-DSA-65 (FIPS 204)
+- **KEM** (hybride): X25519 + ML-KEM-1024 (FIPS 203)
+- **Symmetric AEAD**: ChaCha20-Poly1305 (RFC 8439)
 - **Hashing**: BLAKE3
-- **KDF**: HKDF-SHA256 met versioned info strings
-- **Symmetrisch** (Sprint 4): ChaCha20-Poly1305
-- Geen eigen crypto. Pure-Rust RustCrypto + dalek implementaties.
+- **KDF**: HKDF-SHA256 met versioned domain tags
+- Geen eigen crypto. Pure-Rust crates: RustCrypto + dalek + hashes.
+
+## Wat PHANTOM **niet** doet
+
+- ❌ Eigen onion routing op een klein intern netwerk. Gebruik Tor via Arti als transport-laag voor externe anonimiteit.
+- ❌ Telefoonnummer of e-mail als identifier. Fingerprint = adres.
+- ❌ Centrale server. Geen Signal-Foundation-achtig anker.
+- ❌ PQ ratchet op elk bericht (zou 30× bandbreedte kosten). PQ zit in initial handshake + periodieke re-key.
 
 ## Wallet-semantiek
 
 - **Je mnemonic is je identiteit.** Kwijt = weg. Geen recovery.
-- **Volledig deterministisch** — classical én PQ keys komen uit dezelfde 24 woorden.
-- **Je apparaat is vervangbaar.** Nieuw toestel + mnemonic = zelfde fingerprint.
-- **Je geschiedenis niet.** Lokale berichten staan versleuteld op één toestel tenzij je zelf een back-up maakt.
+- **Volledig deterministisch** — classical én PQ keys uit dezelfde 24 woorden.
+- **Apparaat vervangbaar.** Nieuw toestel + mnemonic = zelfde fingerprint.
+- **Geschiedenis niet.** Lokale berichten staan versleuteld tenzij je zelf back-upt.
 
 ## Licentie
 
-AGPL-3.0-only. De code van iedereen die PHANTOM draait mag geïnspecteerd worden.
+AGPL-3.0-only.

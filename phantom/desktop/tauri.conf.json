@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "PHANTOM",
+  "version": "0.1.0",
+  "identifier": "protocol.phantom.desktop",
+  "build": {
+    "beforeDevCommand": "",
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "./dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "PHANTOM",
+        "width": 960,
+        "height": 640
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
+    }
+  }
+}

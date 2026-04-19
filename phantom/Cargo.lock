@@ -2101,6 +2101,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "phantom-chat"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "hex",
+ "libp2p",
+ "phantom-audit",
+ "phantom-crypto",
+ "phantom-directory",
+ "phantom-p2p",
+ "phantom-protocol",
+ "phantom-wire",
+ "serde",
+ "thiserror 1.0.69",
+ "tokio",
+]
+
+[[package]]
 name = "phantom-cli"
 version = "0.1.0"
 dependencies = [

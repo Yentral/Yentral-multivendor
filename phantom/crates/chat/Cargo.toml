@@ -1,0 +1,30 @@
+[package]
+name = "phantom-chat"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "PHANTOM Protocol — interactive REPL chat client (works as-is on any terminal; also the Rust core behind the Tauri desktop shell in /desktop)."
+
+[lib]
+name = "phantom_chat"
+path = "src/lib.rs"
+
+[[bin]]
+name = "phantom-chat"
+path = "src/main.rs"
+
+[dependencies]
+phantom-crypto    = { workspace = true }
+phantom-wire      = { workspace = true }
+phantom-protocol  = { workspace = true }
+phantom-p2p       = { workspace = true }
+phantom-audit     = { workspace = true }
+phantom-directory = { workspace = true }
+tokio             = { version = "1", features = ["full"] }
+libp2p            = { workspace = true }
+serde             = { workspace = true }
+bincode           = { workspace = true }
+thiserror         = { workspace = true }
+hex               = { workspace = true }

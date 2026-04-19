@@ -7,8 +7,14 @@ members = [
     "crates/audit",
     "crates/directory",
     "crates/p2p",
+    "crates/chat",
     "crates/cli",
 ]
+# `desktop/` contains a Tauri 2 shell that wraps `phantom-chat`. It is
+# intentionally kept OUT of the workspace because the Tauri build requires
+# webkit2gtk-4.1 + libsoup-3.0 on Linux, which may not be installed on every
+# machine. Build it explicitly: `cd desktop && cargo tauri dev`.
+exclude = ["desktop"]
 
 [workspace.package]
 version = "0.1.0"
@@ -67,6 +73,7 @@ phantom-protocol  = { path = "crates/protocol" }
 phantom-audit     = { path = "crates/audit" }
 phantom-directory = { path = "crates/directory" }
 phantom-p2p       = { path = "crates/p2p" }
+phantom-chat      = { path = "crates/chat" }
 
 [profile.release]
 opt-level = 3
