@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/crypto",
     "crates/wire",
+    "crates/protocol",
     "crates/cli",
 ]
 
@@ -49,6 +50,7 @@ clap             = { version = "4", features = ["derive"] }
 # Internal crates
 phantom-crypto   = { path = "crates/crypto" }
 phantom-wire     = { path = "crates/wire" }
+phantom-protocol = { path = "crates/protocol" }
 
 [profile.release]
 opt-level = 3

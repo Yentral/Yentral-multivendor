@@ -6,6 +6,7 @@
 //! phantom fingerprint   --mnemonic "..."  # just the address
 //! phantom demo-handshake                  # run a full PQ-X3DH+ handshake
 //! phantom demo-session                    # handshake + Double Ratchet messages
+//! phantom demo-mail                       # seal & open chat, mail, and a file
 //! ```
 
 use clap::{Parser, Subcommand};
@@ -57,6 +58,10 @@ enum Command {
     /// Run handshake + Double Ratchet + exchange several messages
     /// back-and-forth, showing forward secrecy and DH-ratchet rotation.
     DemoSession,
+
+    /// Seal and open chat, mail, and a large file — shows bucket padding
+    /// and chunked reassembly.
+    DemoMail,
 }
 
 fn main() {
@@ -73,6 +78,7 @@ fn main() {
         } => cmd_fingerprint(&mnemonic, &passphrase),
         Command::DemoHandshake => cmd_demo_handshake(),
         Command::DemoSession => cmd_demo_session(),
+        Command::DemoMail => cmd_demo_mail(),
     }
 }
 
@@ -269,6 +275,122 @@ fn cmd_demo_session() {
     println!("✓ Full-duplex verkeer werkt, out-of-order ook,");
     println!("  elke bericht heeft eigen message_key (forward secrecy).");
     println!("  ChaCha20-Poly1305 MAC beschermt tegen knoeien.");
+}
+
+fn cmd_demo_mail() {
+    use phantom_protocol::{new_message_id, open, seal, Opened, Reassembler, SealedPayload};
+
+    println!("▶ Setup handshake Alice ↔ Bob...");
+    let alice = Identity::from_seed(&Seed::generate().0).unwrap();
+    let bob = Identity::from_seed(&Seed::generate().0).unwrap();
+    let published = PreKeyBundle::build(&bob, 1, 100, 1_700_000_000).unwrap();
+    let (mut a, initial) = initiate_session(&alice, &published.public).unwrap();
+    let mut b = respond_session(
+        &bob,
+        &published.signed_prekey,
+        &published.one_time_prekey,
+        &initial,
+    )
+    .unwrap();
+    println!("  Sessions open.\n");
+
+    // 1. Chat
+    println!("▶ Chat-bericht sealen...");
+    let chat = SealedPayload::Chat {
+        id: new_message_id(),
+        body: "Hoi Bob! Zie mail.".into(),
+        reply_to: None,
+    };
+    let chat_envs = seal(&mut a, &chat, 1_700_000_000).unwrap();
+    println!(
+        "  1 envelope, bucket = {} B (gepad)",
+        chat_envs[0].ciphertext.len()
+    );
+
+    // 2. Mail
+    println!("▶ Mail sealen...");
+    let mail = SealedPayload::Mail {
+        id: new_message_id(),
+        thread_id: [0; 16],
+        subject: "Vergadering morgen".into(),
+        body: "Kom je om 10:00 op kantoor? Groet, Alice.".repeat(30),
+    };
+    let mail_envs = seal(&mut a, &mail, 1_700_000_000).unwrap();
+    println!(
+        "  {} envelope(s), bucket = {} B",
+        mail_envs.len(),
+        mail_envs[0].ciphertext.len()
+    );
+
+    // 3. File (gechunked)
+    println!("▶ Bestand van 200 KiB sealen (gechunked)...");
+    let file_payload = SealedPayload::File {
+        id: new_message_id(),
+        name: "document.pdf".into(),
+        mime: "application/pdf".into(),
+        data: vec![0xAB; 200 * 1024],
+    };
+    let file_envs = seal(&mut a, &file_payload, 1_700_000_000).unwrap();
+    println!(
+        "  {} envelope(s) van {} B elk (bucket = 64 KiB)",
+        file_envs.len(),
+        file_envs[0].ciphertext.len()
+    );
+    println!();
+
+    // Bob opent alles; observer ziet geen verschil tussen chat/mail/file
+    // — zelfde envelopeformaat, zelfde ratchet pipeline.
+    println!("▶ Bob opent alles:");
+    let mut reassembler = Reassembler::new();
+
+    match open(&mut b, &chat_envs[0]).unwrap() {
+        Opened::Complete(SealedPayload::Chat { body, .. }) => {
+            println!("  💬 chat: {body}")
+        }
+        _ => unreachable!(),
+    }
+
+    // Mail mag meerdere envelopes zijn, hier niet.
+    for env in &mail_envs {
+        match open(&mut b, env).unwrap() {
+            Opened::Complete(SealedPayload::Mail { subject, body, .. }) => {
+                println!("  ✉️  mail (subject={subject}, body={} B)", body.len())
+            }
+            Opened::Chunk(frame) => {
+                if let Some(SealedPayload::Mail { subject, body, .. }) =
+                    reassembler.push(frame).unwrap()
+                {
+                    println!(
+                        "  ✉️  mail (subject={subject}, body={} B, reassembled)",
+                        body.len()
+                    )
+                }
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    for env in &file_envs {
+        match open(&mut b, env).unwrap() {
+            Opened::Chunk(frame) => {
+                if let Some(SealedPayload::File { name, data, .. }) =
+                    reassembler.push(frame).unwrap()
+                {
+                    println!(
+                        "  📎 file: {name} ({} KiB, reassembled uit {} chunks)",
+                        data.len() / 1024,
+                        file_envs.len()
+                    );
+                }
+            }
+            Opened::Complete(_) => unreachable!("200 KiB should chunk"),
+        }
+    }
+
+    println!();
+    println!("✓ Chat, mail en file hebben identiek envelope-formaat.");
+    println!("  Buckets: 1 KiB / 4 KiB / 16 KiB / 64 KiB — verder niets zichtbaar.");
+    println!("  Een observer kan onmogelijk chat van mail van file onderscheiden.");
 }
 
 fn print_mnemonic_numbered(phrase: &str) {

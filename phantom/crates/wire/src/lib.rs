@@ -20,4 +20,4 @@
 
 pub mod envelope;
 
-pub use envelope::{Envelope, MessageKind, SizeBucket};
+pub use envelope::{Envelope, EnvelopeError, MessageKind, SizeBucket, DELIVERY_TOKEN_LEN};

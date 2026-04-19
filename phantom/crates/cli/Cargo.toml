@@ -12,7 +12,8 @@ name = "phantom"
 path = "src/main.rs"
 
 [dependencies]
-phantom-crypto = { workspace = true }
-phantom-wire   = { workspace = true }
-clap           = { workspace = true }
-hex            = { workspace = true }
+phantom-crypto   = { workspace = true }
+phantom-wire     = { workspace = true }
+phantom-protocol = { workspace = true }
+clap             = { workspace = true }
+hex              = { workspace = true }
