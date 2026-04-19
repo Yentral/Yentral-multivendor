@@ -12,9 +12,6 @@ description = "PHANTOM Protocol — Tauri 2 desktop GUI shell wrapping phantom-c
 #
 # …on a machine where those system packages are installed.
 
-[lib]
-crate-type = ["staticlib", "cdylib", "rlib"]
-
 [[bin]]
 name = "phantom-desktop"
 path = "src/main.rs"
@@ -24,6 +21,7 @@ tauri         = { version = "2", features = [] }
 serde         = { version = "1", features = ["derive"] }
 serde_json    = "1"
 tokio         = { version = "1", features = ["full"] }
+libp2p        = { version = "0.54", default-features = false }
 
 # Re-use the workspace crates via relative paths.
 phantom-chat     = { path = "../crates/chat" }
