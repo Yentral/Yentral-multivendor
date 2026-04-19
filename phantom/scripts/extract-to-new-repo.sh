@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
-# Extract phantom/ into a standalone new git repository.
+# Extract phantom/ into a standalone new git repository, and ship it with
+# a working .github/workflows/build-mac.yml so Apple-hosted Mac builds
+# work on the first push.
 #
-# Usage (path A — preserve history):
-#   ./scripts/extract-to-new-repo.sh git@github.com:you/phantom-chat.git
+# Usage (preserve history — recommended):
+#   ./scripts/extract-to-new-repo.sh https://github.com/you/phantom-chat.git
 #
-# Usage (path B — flat, no history):
-#   ./scripts/extract-to-new-repo.sh --flat git@github.com:you/phantom-chat.git
+# Usage (flat — single initial commit):
+#   ./scripts/extract-to-new-repo.sh --flat https://github.com/you/phantom-chat.git
 #
-# Prerequisites: you've created an EMPTY private repo on github.com with that URL.
+# Prerequisites: you've created an EMPTY private repo on github.com with
+# that URL. Do NOT initialize it with a README or .gitignore.
 
 set -euo pipefail
 
@@ -19,13 +22,20 @@ fi
 
 REMOTE="${1:-}"
 if [[ -z "$REMOTE" ]]; then
-  echo "usage: $0 [--flat] <git-remote-url>"
-  echo "e.g.   $0 git@github.com:yourname/phantom-chat.git"
+  cat <<EOF
+usage: $0 [--flat] <git-remote-url>
+
+Examples:
+  $0 https://github.com/bleuproton/phantom-chat.git
+  $0 --flat https://github.com/bleuproton/phantom-chat.git
+  $0 git@github.com:bleuproton/phantom-chat.git
+EOF
   exit 1
 fi
 
 # Work from the repo root (parent of phantom/)
-cd "$(dirname "$0")/../.."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR/../.."
 ROOT="$(pwd)"
 echo "▶ Source repo root: $ROOT"
 
@@ -35,18 +45,15 @@ echo "▶ Scratch dir:      $WORK"
 case "$MODE" in
   preserve)
     echo "▶ Mode: preserve commit history for phantom/ subtree"
-    # Create a branch containing only the phantom/ subtree with its history.
     git subtree split --prefix=phantom -b phantom-extracted
     git clone --single-branch --branch phantom-extracted "$ROOT" "$WORK/newrepo"
     cd "$WORK/newrepo"
-    # Collapse the default "main" branch and rename our extracted branch to it.
     git branch -m phantom-extracted main
     git remote set-url origin "$REMOTE"
     ;;
   flat)
     echo "▶ Mode: flat, single initial commit"
     mkdir -p "$WORK/newrepo"
-    # Copy everything from phantom/ EXCEPT target/ and build noise.
     (cd phantom && \
       find . -type f \
         ! -path '*/target/*' \
@@ -69,15 +76,60 @@ for installation instructions."
     ;;
 esac
 
+# ---------------------------------------------------------------------------
+# Add the adapted GitHub Actions workflow (paths without phantom/ prefix).
+# ---------------------------------------------------------------------------
+echo "▶ Installing .github/workflows/build-mac.yml (Mac Actions build)"
+mkdir -p .github/workflows
+cp "$SCRIPT_DIR/build-mac.yml.template" .github/workflows/build-mac.yml
+
+# Also drop a CI workflow that runs tests on every push (Linux, much cheaper).
+cat > .github/workflows/ci.yml <<'CIEOF'
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.95.0'
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --all-targets --workspace -- -D warnings
+      - run: cargo test --workspace
+CIEOF
+
+git add .github/
+git commit -m "ci: Mac .dmg build workflow + Linux test matrix"
+
+# ---------------------------------------------------------------------------
+# Print next steps
+# ---------------------------------------------------------------------------
 echo ""
-echo "▶ New local repo ready at:   $WORK/newrepo"
-echo "▶ Remote:                     $REMOTE"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "▶ New local repo ready at:    $WORK/newrepo"
+echo "▶ Remote:                      $REMOTE"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "▶ To push:"
-echo "    cd $WORK/newrepo"
-echo "    git push -u origin main"
-echo ""
-echo "▶ Verify first:"
+echo "▶ Quick verify:"
 echo "    cd $WORK/newrepo"
 echo "    git log --oneline | head"
 echo "    ls"
+echo ""
+echo "▶ Push (use HTTPS + PAT, or SSH if you set up keys):"
+echo "    cd $WORK/newrepo"
+echo "    git push -u origin main"
+echo ""
+echo "▶ After push:"
+echo "    - github.com/$REMOTE → Actions tab"
+echo "    - 'build — macOS' workflow → Run workflow → Run workflow"
+echo "    - Wait 15 min → scroll to Artifacts → download phantom-apple-silicon-dmg"
+echo ""

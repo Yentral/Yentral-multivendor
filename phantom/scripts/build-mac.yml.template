@@ -1,0 +1,81 @@
+name: build — macOS
+
+# Runs on real Apple Silicon + Intel Mac hardware hosted by GitHub. Produces
+# downloadable .app bundles and .dmg installers as workflow artifacts.
+#
+# Triggered:
+#   - manually from the Actions tab (workflow_dispatch)
+#   - automatically on tags matching v*
+#   - automatically on pushes to main
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - main
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-14
+            target: aarch64-apple-darwin
+            label: apple-silicon
+          - runner: macos-13
+            target: x86_64-apple-darwin
+            label: intel
+
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.95.0'
+          targets: ${{ matrix.target }}
+          components: rustfmt, clippy
+
+      - name: Cache cargo registry + target
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            .
+            desktop
+
+      - name: Workspace tests
+        run: cargo test --release --workspace
+
+      - name: Install tauri-cli
+        run: cargo install tauri-cli --version '^2' --locked
+
+      - name: Build desktop bundle
+        working-directory: desktop
+        run: cargo tauri build --target ${{ matrix.target }}
+
+      - name: List produced artifacts
+        run: |
+          cd desktop/target/${{ matrix.target }}/release/bundle
+          ls -la
+          find . -name '*.dmg' -o -name '*.app' | sort
+
+      - name: Upload .app bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: phantom-${{ matrix.label }}-app
+          path: desktop/target/${{ matrix.target }}/release/bundle/macos/*.app
+          if-no-files-found: warn
+
+      - name: Upload .dmg installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: phantom-${{ matrix.label }}-dmg
+          path: desktop/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+          if-no-files-found: warn
